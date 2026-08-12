@@ -35,7 +35,16 @@ export class HttpTaxRepository implements TaxRepository {
     window.localStorage.setItem(AUTH_KEY, JSON.stringify(session));
     return session;
   }
-  getDatabase() { return this.request<TaxDatabase>("/api/database"); }
+  async getDatabase() {
+    const data = await this.request<TaxDatabase>("/api/database");
+    return {
+      ...data,
+      periods: Array.isArray(data.periods) ? data.periods : [],
+      transactions: Array.isArray(data.transactions) ? data.transactions : [],
+      audit: Array.isArray(data.audit) ? data.audit : [],
+      declarations: Array.isArray(data.declarations) ? data.declarations : []
+    };
+  }
   getTaxPeriods() { return this.request<TaxPeriod[]>("/api/tax-periods"); }
   getTransactions(periodId?: string) { return this.request<Transaction[]>(`/api/transactions${periodId ? `?periodId=${encodeURIComponent(periodId)}` : ""}`); }
   saveProfile(profile: BusinessProfile) { return this.request<BusinessProfile>("/api/profile", { method: "PUT", body: JSON.stringify(profile) }); }
