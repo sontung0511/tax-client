@@ -8,6 +8,7 @@ export interface TaxApi {
   getTransactions(periodId?: string): Promise<Transaction[]>;
   updateProfile(profile: BusinessProfile): Promise<BusinessProfile>;
   createTransaction(transaction: Transaction): Promise<Transaction>;
+  updateTransaction(transaction: Transaction): Promise<Transaction>;
   deleteTransaction(transactionId: string): Promise<void>;
   calculate(periodId: string): Promise<TaxBreakdown>;
   lockPeriod(periodId: string): Promise<TaxPeriod>;
@@ -22,6 +23,7 @@ export const taxApi: TaxApi = {
   getTransactions: (periodId) => taxRepository.getTransactions(periodId),
   updateProfile: (profile) => taxRepository.saveProfile(profile),
   createTransaction: (transaction) => taxRepository.saveTransaction(transaction),
+  updateTransaction: (transaction) => taxRepository.updateTransaction(transaction),
   deleteTransaction: (transactionId) => taxRepository.deleteTransaction(transactionId),
   calculate: (periodId) => taxRepository.calculate(periodId),
   lockPeriod: (periodId) => taxRepository.lockPeriod(periodId),
@@ -33,7 +35,7 @@ export const taxApi: TaxApi = {
 export const taxApiContracts = {
   login: "POST /api/login",
   periods: "GET /api/tax-periods",
-  transactions: "GET|POST /api/transactions",
+  transactions: "GET|POST /api/transactions; PUT|DELETE /api/transactions/{id}",
   calculate: "POST /api/calculate",
   imports: "POST /api/imports",
   exports: "GET /api/exports",

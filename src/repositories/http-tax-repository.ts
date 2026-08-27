@@ -51,6 +51,7 @@ export class HttpTaxRepository implements TaxRepository {
   savePeriod(period: TaxPeriod) { return this.request<TaxPeriod>("/api/tax-periods", { method: "POST", body: JSON.stringify(period) }); }
   lockPeriod(periodId: string) { return this.request<TaxPeriod>(`/api/tax-periods/${encodeURIComponent(periodId)}/lock`, { method: "POST" }); }
   saveTransaction(transaction: Transaction) { return this.request<Transaction>("/api/transactions", { method: "POST", body: JSON.stringify(transaction) }); }
+  updateTransaction(transaction: Transaction) { return this.request<Transaction>(`/api/transactions/${encodeURIComponent(transaction.id)}`, { method: "PUT", body: JSON.stringify(transaction) }); }
   deleteTransaction(transactionId: string) { return this.request<void>(`/api/transactions/${encodeURIComponent(transactionId)}`, { method: "DELETE" }); }
   importTransactions(items: Transaction[]) { return this.request<{ imported: number }>("/api/imports", { method: "POST", body: JSON.stringify({ items }) }); }
   saveDeclaration(declaration: TaxDeclaration) { return this.request<TaxDeclaration>(`/api/declarations/${encodeURIComponent(declaration.id)}`, { method: "PUT", body: JSON.stringify(declaration) }); }

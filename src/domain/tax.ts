@@ -53,6 +53,7 @@ export interface Transaction {
   description: string;
   invoiceNo: string;
   amount: Vnd;
+  vatAmount: Vnd;
   revenueCategory: IndustryCode;
   documentNo?: string;
   paymentStatus?: "paid" | "unpaid";

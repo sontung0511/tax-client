@@ -9,6 +9,7 @@ export interface TaxRepository {
   savePeriod(period: TaxPeriod): Promise<TaxPeriod>;
   lockPeriod(periodId: string): Promise<TaxPeriod>;
   saveTransaction(transaction: Transaction): Promise<Transaction>;
+  updateTransaction(transaction: Transaction): Promise<Transaction>;
   deleteTransaction(transactionId: string): Promise<void>;
   importTransactions(items: Transaction[]): Promise<{ imported: number }>;
   addAudit(entry: AuditEntry): Promise<void>;

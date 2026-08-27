@@ -9,6 +9,7 @@ export function validateTransactions(items: Transaction[]): TransactionIssue[] {
   for (const item of items) {
     if (!item.date || !item.description || (item.type === "revenue" && !item.revenueCategory)) issues.push({ transactionId: item.id, code: "missing", message: "Thiếu ngày, nội dung hoặc nhóm ngành" });
     if (!Number.isSafeInteger(item.amount) || item.amount <= 0 || Number.isNaN(Date.parse(item.date))) issues.push({ transactionId: item.id, code: "invalid", message: "Ngày hoặc số tiền không hợp lệ" });
+    if (!Number.isSafeInteger(item.vatAmount ?? 0) || (item.vatAmount ?? 0) < 0) issues.push({ transactionId: item.id, code: "invalid", message: "Tiền thuế GTGT phải là số nguyên VND không âm" });
     if (!item.invoiceNo) issues.push({ transactionId: item.id, code: "missing", message: "Thiếu số hóa đơn/chứng từ" });
     const key = `${item.date}|${item.invoiceNo.trim().toLowerCase()}|${item.amount}`;
     const existing = seen.get(key);

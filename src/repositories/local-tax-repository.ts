@@ -22,7 +22,7 @@ export class LocalTaxRepository implements TaxRepository {
       parsed.profile.taxpayerType ??= "household";
       parsed.profile.householdTaxMethod ??= "revenue_percentage";
       parsed.declarations ??= cloneSeed().declarations;
-      parsed.transactions = parsed.transactions.map((item) => ({ ...item, revenueCategory: item.revenueCategory ?? parsed.profile.industry, paymentStatus: item.paymentStatus ?? "paid", outstandingAmount: item.outstandingAmount ?? 0 }));
+      parsed.transactions = parsed.transactions.map((item) => ({ ...item, revenueCategory: item.revenueCategory ?? parsed.profile.industry, vatAmount: item.vatAmount ?? 0, paymentStatus: item.paymentStatus ?? "paid", outstandingAmount: item.outstandingAmount ?? 0 }));
       return parsed;
     } catch {
       const initial = cloneSeed();
@@ -86,6 +86,8 @@ export class LocalTaxRepository implements TaxRepository {
     this.write(data);
     return transaction;
   }
+
+  async updateTransaction(transaction: Transaction) { return this.saveTransaction(transaction); }
 
   async deleteTransaction(transactionId: string) {
     const data = this.read(); const transaction = data.transactions.find((item) => item.id === transactionId);
