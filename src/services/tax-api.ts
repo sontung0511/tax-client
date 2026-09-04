@@ -1,4 +1,4 @@
-import type { Account, BusinessProfile, CashReceipt, Counterparty, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import { taxRepository } from "@/repositories";
 
 // Contract duy nhất cho UI; mặc định dùng HTTP backend, local chỉ dành cho demo có chủ đích.
@@ -16,6 +16,8 @@ export interface TaxApi {
   createCashReceipt(receipt: CashReceipt): Promise<Transaction>;
   getAccounts(query?: string): Promise<Account[]>;
   updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
+  createCashPayment(payment: CashPayment): Promise<Transaction>;
+  updateCashPayment(payment: CashPayment & { id: string }): Promise<Transaction>;
   calculate(periodId: string): Promise<TaxBreakdown>;
   lockPeriod(periodId: string): Promise<TaxPeriod>;
   confirmImport(items: Transaction[]): Promise<{ imported: number }>;
@@ -37,6 +39,8 @@ export const taxApi: TaxApi = {
   createCashReceipt: (receipt) => taxRepository.createCashReceipt(receipt),
   getAccounts: (query) => taxRepository.getAccounts(query),
   updateCashReceipt: (receipt) => taxRepository.updateCashReceipt(receipt),
+  createCashPayment: (payment) => taxRepository.createCashPayment(payment),
+  updateCashPayment: (payment) => taxRepository.updateCashPayment(payment),
   calculate: (periodId) => taxRepository.calculate(periodId),
   lockPeriod: (periodId) => taxRepository.lockPeriod(periodId),
   confirmImport: (items) => taxRepository.importTransactions(items),
@@ -50,6 +54,7 @@ export const taxApiContracts = {
   transactions: "GET|POST /api/transactions; PUT|DELETE /api/transactions/{id}",
     counterparties: "GET /api/counterparties; GET|PUT /api/counterparties/{code}",
   cashReceipts: "POST /api/cash-receipts",
+  cashPayments: "POST /api/cash-payments",
   calculate: "POST /api/calculate",
   imports: "POST /api/imports",
   exports: "GET /api/exports",

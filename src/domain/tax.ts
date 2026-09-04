@@ -58,12 +58,13 @@ export interface Transaction {
   documentNo?: string;
   paymentStatus?: "paid" | "unpaid";
   outstandingAmount?: Vnd;
-    voucherType?: "cash_receipt";
+    voucherType?: "cash_receipt" | "cash_payment";
     counterpartyCode?: string;
     counterpartyName?: string;
     counterpartyTaxCode?: string;
     counterpartyAddress?: string;
     cashReceipt?: CashReceiptData;
+    cashPayment?: CashPaymentData;
 }
 
 export interface Counterparty {
@@ -105,6 +106,49 @@ export interface CashReceipt {
 
 export interface ReceiptAttachment { name: string; type: string; size: number; data: string; }
 export interface CashReceiptData extends Omit<CashReceipt, "id" | "periodId" | "receiptNo" | "counterpartyCode" | "counterpartyName" | "counterpartyTaxCode" | "counterpartyAddress" | "description" | "amount" | "revenueCategory" | "saveCounterparty"> {}
+
+export interface CashPayment {
+  id?: string;
+  periodId: string;
+  status: "draft" | "saved";
+  month: string;
+  ctgsNo: string;
+  postingDate: string;
+  voucherDate: string;
+  paymentNo: string;
+  recipientCode: string;
+  recipientName: string;
+  recipientTaxCode: string;
+  recipientAddress: string;
+  relatedDocumentNo: string;
+  description: string;
+  invoiceType: string;
+  invoiceNo: string;
+  invoiceSerial: string;
+  invoiceDate: string;
+  unitName: string;
+  unitAddress: string;
+  itemName: string;
+  warehouseCode: string;
+  debitAccount: string;
+  debitSub1: string;
+  debitSub2: string;
+  creditAccount: string;
+  creditSub1: string;
+  creditSub2: string;
+  caseCode: string;
+  quantity: number;
+  unitPrice: Vnd;
+  currency: string;
+  exchangeRate: number;
+  amount: Vnd;
+  endingStock: string;
+  note: string;
+  attachments: ReceiptAttachment[];
+  savePayee: boolean;
+}
+
+export interface CashPaymentData extends Omit<CashPayment, "id" | "periodId" | "paymentNo" | "recipientCode" | "recipientName" | "recipientTaxCode" | "recipientAddress" | "description" | "amount" | "savePayee"> {}
 
 export interface TaxLine {
   industry: IndustryCode;

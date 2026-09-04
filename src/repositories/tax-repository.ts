@@ -1,4 +1,4 @@
-import type { Account, AuditEntry, BusinessProfile, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 
 export interface TaxRepository {
   login(username: string, password: string): Promise<{ token: string; displayName: string }>;
@@ -17,6 +17,8 @@ export interface TaxRepository {
   createCashReceipt(receipt: CashReceipt): Promise<Transaction>;
   getAccounts(query?: string): Promise<Account[]>;
   updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
+  createCashPayment(payment: CashPayment): Promise<Transaction>;
+  updateCashPayment(payment: CashPayment & { id: string }): Promise<Transaction>;
   importTransactions(items: Transaction[]): Promise<{ imported: number }>;
   addAudit(entry: AuditEntry): Promise<void>;
   saveDeclaration(declaration: TaxDeclaration): Promise<TaxDeclaration>;

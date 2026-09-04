@@ -1,4 +1,4 @@
-import type { Account, AuditEntry, BusinessProfile, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 
 const AUTH_KEY = "tax-client.auth.v1";
@@ -59,6 +59,8 @@ export class HttpTaxRepository implements TaxRepository {
   createCashReceipt(receipt: CashReceipt) { return this.request<Transaction>("/api/cash-receipts", { method: "POST", body: JSON.stringify(receipt) }); }
   getAccounts(query?: string) { return this.request<Account[]>(`/api/accounts${query ? `?query=${encodeURIComponent(query)}` : ""}`); }
   updateCashReceipt(receipt: CashReceipt & { id: string }) { return this.request<Transaction>(`/api/cash-receipts/${encodeURIComponent(receipt.id)}`, { method: "PUT", body: JSON.stringify(receipt) }); }
+  createCashPayment(payment: CashPayment) { return this.request<Transaction>("/api/cash-payments", { method: "POST", body: JSON.stringify(payment) }); }
+  updateCashPayment(payment: CashPayment & { id: string }) { return this.request<Transaction>(`/api/cash-payments/${encodeURIComponent(payment.id)}`, { method: "PUT", body: JSON.stringify(payment) }); }
   importTransactions(items: Transaction[]) { return this.request<{ imported: number }>("/api/imports", { method: "POST", body: JSON.stringify({ items }) }); }
   saveDeclaration(declaration: TaxDeclaration) { return this.request<TaxDeclaration>(`/api/declarations/${encodeURIComponent(declaration.id)}`, { method: "PUT", body: JSON.stringify(declaration) }); }
   calculate(periodId: string) { return this.request<TaxBreakdown>("/api/calculate", { method: "POST", body: JSON.stringify({ periodId }) }); }

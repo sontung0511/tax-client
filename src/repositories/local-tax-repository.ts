@@ -1,5 +1,5 @@
 import { seedDatabase } from "@/domain/mock-data";
-import type { Account, AuditEntry, BusinessProfile, CashReceipt, Counterparty, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 import { calculateTax } from "@/tax-engine/calculate";
 
@@ -136,6 +136,22 @@ export class LocalTaxRepository implements TaxRepository {
   async updateCashReceipt(receipt: CashReceipt & { id: string }) {
     const created = await this.createCashReceipt({ ...receipt, id: undefined });
     const data = this.read(); data.transactions = data.transactions.filter((item) => item.id !== receipt.id); this.write(data);
+    return created;
+  }
+
+  async createCashPayment(payment: CashPayment) {
+    const data = this.read();
+    if (!data.periods.some((period) => period.id === payment.periodId)) throw new Error("Không tìm thấy kỳ kê khai");
+    if (!isValidReceiptDate(payment.voucherDate) || !isValidReceiptDate(payment.postingDate) || !payment.paymentNo.trim() || !payment.recipientName.trim() || !payment.description.trim() || !isValidReceiptAmount(payment.amount) || !/^\d{3,10}$/.test(payment.debitAccount) || !/^\d{3,10}$/.test(payment.creditAccount)) {
+      throw new Error("Vui lòng nhập đủ thông tin phiếu chi, tài khoản Nợ/Có và số tiền hợp lệ");
+    }
+    if (payment.savePayee && payment.recipientCode.trim()) await this.saveCounterparty({ code: payment.recipientCode.trim(), name: payment.recipientName.trim(), taxCode: payment.recipientTaxCode.trim(), address: payment.recipientAddress.trim() });
+    return this.saveTransaction({ id: crypto.randomUUID(), periodId: payment.periodId, date: payment.voucherDate, type: "expense", description: payment.description.trim(), invoiceNo: payment.invoiceNo, documentNo: payment.paymentNo.trim(), amount: payment.amount, vatAmount: 0, revenueCategory: "other", paymentStatus: "paid", outstandingAmount: 0, voucherType: "cash_payment", counterpartyCode: payment.recipientCode.trim(), counterpartyName: payment.recipientName.trim(), counterpartyTaxCode: payment.recipientTaxCode.trim(), counterpartyAddress: payment.recipientAddress.trim(), cashPayment: { status: payment.status, month: payment.month, ctgsNo: payment.ctgsNo, postingDate: payment.postingDate, voucherDate: payment.voucherDate, relatedDocumentNo: payment.relatedDocumentNo, invoiceType: payment.invoiceType, invoiceNo: payment.invoiceNo, invoiceSerial: payment.invoiceSerial, invoiceDate: payment.invoiceDate, unitName: payment.unitName, unitAddress: payment.unitAddress, itemName: payment.itemName, warehouseCode: payment.warehouseCode, debitAccount: payment.debitAccount, debitSub1: payment.debitSub1, debitSub2: payment.debitSub2, creditAccount: payment.creditAccount, creditSub1: payment.creditSub1, creditSub2: payment.creditSub2, caseCode: payment.caseCode, quantity: payment.quantity, unitPrice: payment.unitPrice, currency: payment.currency, exchangeRate: payment.exchangeRate, endingStock: payment.endingStock, note: payment.note, attachments: payment.attachments } });
+  }
+
+  async updateCashPayment(payment: CashPayment & { id: string }) {
+    const created = await this.createCashPayment({ ...payment, id: undefined });
+    const data = this.read(); data.transactions = data.transactions.filter((item) => item.id !== payment.id); this.write(data);
     return created;
   }
 
