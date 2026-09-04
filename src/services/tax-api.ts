@@ -1,4 +1,4 @@
-import type { BusinessProfile, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, BusinessProfile, CashReceipt, Counterparty, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import { taxRepository } from "@/repositories";
 
 // Contract duy nhất cho UI; mặc định dùng HTTP backend, local chỉ dành cho demo có chủ đích.
@@ -10,6 +10,12 @@ export interface TaxApi {
   createTransaction(transaction: Transaction): Promise<Transaction>;
   updateTransaction(transaction: Transaction): Promise<Transaction>;
   deleteTransaction(transactionId: string): Promise<void>;
+    getCounterparties(query?: string): Promise<Counterparty[]>;
+    getCounterparty(code: string): Promise<Counterparty>;
+    saveCounterparty(counterparty: Counterparty): Promise<Counterparty>;
+  createCashReceipt(receipt: CashReceipt): Promise<Transaction>;
+  getAccounts(query?: string): Promise<Account[]>;
+  updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
   calculate(periodId: string): Promise<TaxBreakdown>;
   lockPeriod(periodId: string): Promise<TaxPeriod>;
   confirmImport(items: Transaction[]): Promise<{ imported: number }>;
@@ -25,6 +31,12 @@ export const taxApi: TaxApi = {
   createTransaction: (transaction) => taxRepository.saveTransaction(transaction),
   updateTransaction: (transaction) => taxRepository.updateTransaction(transaction),
   deleteTransaction: (transactionId) => taxRepository.deleteTransaction(transactionId),
+    getCounterparties: (query) => taxRepository.getCounterparties(query),
+    getCounterparty: (code) => taxRepository.getCounterparty(code),
+    saveCounterparty: (counterparty) => taxRepository.saveCounterparty(counterparty),
+  createCashReceipt: (receipt) => taxRepository.createCashReceipt(receipt),
+  getAccounts: (query) => taxRepository.getAccounts(query),
+  updateCashReceipt: (receipt) => taxRepository.updateCashReceipt(receipt),
   calculate: (periodId) => taxRepository.calculate(periodId),
   lockPeriod: (periodId) => taxRepository.lockPeriod(periodId),
   confirmImport: (items) => taxRepository.importTransactions(items),
@@ -36,6 +48,8 @@ export const taxApiContracts = {
   login: "POST /api/login",
   periods: "GET /api/tax-periods",
   transactions: "GET|POST /api/transactions; PUT|DELETE /api/transactions/{id}",
+    counterparties: "GET /api/counterparties; GET|PUT /api/counterparties/{code}",
+  cashReceipts: "POST /api/cash-receipts",
   calculate: "POST /api/calculate",
   imports: "POST /api/imports",
   exports: "GET /api/exports",

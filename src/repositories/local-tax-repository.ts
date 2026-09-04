@@ -1,5 +1,5 @@
 import { seedDatabase } from "@/domain/mock-data";
-import type { AuditEntry, BusinessProfile, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CashReceipt, Counterparty, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 import { calculateTax } from "@/tax-engine/calculate";
 
@@ -22,6 +22,7 @@ export class LocalTaxRepository implements TaxRepository {
       parsed.profile.taxpayerType ??= "household";
       parsed.profile.householdTaxMethod ??= "revenue_percentage";
       parsed.declarations ??= cloneSeed().declarations;
+        parsed.counterparties ??= [];
       parsed.transactions = parsed.transactions.map((item) => ({ ...item, revenueCategory: item.revenueCategory ?? parsed.profile.industry, vatAmount: item.vatAmount ?? 0, paymentStatus: item.paymentStatus ?? "paid", outstandingAmount: item.outstandingAmount ?? 0 }));
       return parsed;
     } catch {
@@ -98,6 +99,46 @@ export class LocalTaxRepository implements TaxRepository {
     this.write(data);
   }
 
+  async getCounterparties(query?: string) {
+      const needle = query?.trim().toLowerCase() ?? "";
+      return (this.read().counterparties ?? []).filter((item) => !needle || item.code.toLowerCase().includes(needle) || item.name.toLowerCase().includes(needle));
+    }
+
+    async getCounterparty(code: string) {
+      const item = (this.read().counterparties ?? []).find((counterparty) => counterparty.code === code);
+      if (!item) throw new Error("Không tìm thấy đối tượng");
+      return item;
+    }
+
+    async saveCounterparty(counterparty: Counterparty) {
+      const data = this.read();
+      data.counterparties = (data.counterparties ?? []).filter((item) => item.code !== counterparty.code);
+      data.counterparties.unshift(counterparty);
+      this.write(data);
+      return counterparty;
+    }
+
+    async createCashReceipt(receipt: CashReceipt) {
+      const data = this.read();
+      if (!data.periods.some((period) => period.id === receipt.periodId)) throw new Error("Không tìm thấy kỳ kê khai");
+    if (!isValidReceiptDate(receipt.voucherDate) || !isValidReceiptDate(receipt.accountingDate) || !receipt.receiptNo.trim() || !receipt.counterpartyCode.trim() || !receipt.counterpartyName.trim() || !receipt.description.trim() || !isValidReceiptAmount(receipt.amount) || !receipt.convertedAmount || !receipt.debitAccount || !receipt.creditAccount) {
+        throw new Error("Vui lòng nhập đủ thông tin phiếu thu và số tiền hợp lệ");
+      }
+      if (receipt.saveCounterparty) await this.saveCounterparty({ code: receipt.counterpartyCode.trim(), name: receipt.counterpartyName.trim(), taxCode: receipt.counterpartyTaxCode.trim(), address: receipt.counterpartyAddress.trim() });
+    return this.saveTransaction({ id: crypto.randomUUID(), periodId: receipt.periodId, date: receipt.voucherDate, type: "revenue", description: receipt.description.trim(), invoiceNo: receipt.receiptNo.trim(), documentNo: receipt.receiptNo.trim(), amount: receipt.convertedAmount, vatAmount: 0, revenueCategory: receipt.revenueCategory, paymentStatus: "paid", outstandingAmount: 0, voucherType: "cash_receipt", counterpartyCode: receipt.counterpartyCode.trim(), counterpartyName: receipt.counterpartyName.trim(), counterpartyTaxCode: receipt.counterpartyTaxCode.trim(), counterpartyAddress: receipt.counterpartyAddress.trim(), cashReceipt: { voucherDate: receipt.voucherDate, accountingDate: receipt.accountingDate, status: receipt.status, contactName: receipt.contactName, debitAccount: receipt.debitAccount, creditAccount: receipt.creditAccount, currency: receipt.currency, exchangeRate: receipt.exchangeRate, convertedAmount: receipt.convertedAmount, invoiceNo: receipt.invoiceNo, invoiceDate: receipt.invoiceDate, caseCode: receipt.caseCode, collector: receipt.collector, note: receipt.note, attachments: receipt.attachments } });
+  }
+
+  async getAccounts(query?: string): Promise<Account[]> {
+    const needle = query?.trim().toLowerCase() ?? "";
+    return (this.read().accounts ?? []).filter((item) => !needle || item.code.includes(needle) || item.name.toLowerCase().includes(needle));
+  }
+
+  async updateCashReceipt(receipt: CashReceipt & { id: string }) {
+    const created = await this.createCashReceipt({ ...receipt, id: undefined });
+    const data = this.read(); data.transactions = data.transactions.filter((item) => item.id !== receipt.id); this.write(data);
+    return created;
+  }
+
   async importTransactions(items: Transaction[]) {
     const data = this.read();
     const lockedPeriod = items.find((item) => data.periods.find((period) => period.id === item.periodId)?.lockedAt);
@@ -133,3 +174,10 @@ export class LocalTaxRepository implements TaxRepository {
 }
 
 export const localTaxRepository: TaxRepository = new LocalTaxRepository();
+
+function isValidReceiptAmount(value: number) { return Number.isSafeInteger(value) && value > 0; }
+
+function isValidReceiptDate(value: string) {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}

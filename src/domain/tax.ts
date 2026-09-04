@@ -58,7 +58,53 @@ export interface Transaction {
   documentNo?: string;
   paymentStatus?: "paid" | "unpaid";
   outstandingAmount?: Vnd;
+    voucherType?: "cash_receipt";
+    counterpartyCode?: string;
+    counterpartyName?: string;
+    counterpartyTaxCode?: string;
+    counterpartyAddress?: string;
+    cashReceipt?: CashReceiptData;
 }
+
+export interface Counterparty {
+  code: string;
+  name: string;
+  taxCode: string;
+  address: string;
+}
+export interface Account { code: string; name: string; parentCode?: string; isActive: boolean; }
+
+export interface CashReceipt {
+  id?: string;
+  periodId: string;
+  voucherDate: string;
+  accountingDate: string;
+  status: "draft" | "saved";
+  receiptNo: string;
+  counterpartyCode: string;
+  counterpartyName: string;
+  counterpartyTaxCode: string;
+  counterpartyAddress: string;
+  description: string;
+  contactName: string;
+  debitAccount: string;
+  creditAccount: string;
+  amount: Vnd;
+  currency: string;
+  exchangeRate: number;
+  convertedAmount: Vnd;
+  revenueCategory: IndustryCode;
+  invoiceNo: string;
+  invoiceDate: string;
+  caseCode: string;
+  collector: string;
+  note: string;
+  attachments: ReceiptAttachment[];
+  saveCounterparty: boolean;
+}
+
+export interface ReceiptAttachment { name: string; type: string; size: number; data: string; }
+export interface CashReceiptData extends Omit<CashReceipt, "id" | "periodId" | "receiptNo" | "counterpartyCode" | "counterpartyName" | "counterpartyTaxCode" | "counterpartyAddress" | "description" | "amount" | "revenueCategory" | "saveCounterparty"> {}
 
 export interface TaxLine {
   industry: IndustryCode;
@@ -97,6 +143,8 @@ export interface TaxDatabase {
   profile: BusinessProfile;
   periods: TaxPeriod[];
   transactions: Transaction[];
+    counterparties?: Counterparty[];
+    accounts?: Account[];
   audit: AuditEntry[];
   declarations: TaxDeclaration[];
 }

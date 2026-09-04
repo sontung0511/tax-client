@@ -20,4 +20,13 @@
   .section-subtitle { @apply mt-1 text-sm text-slate-400; }
   .link-button { @apply text-sm font-semibold text-pine hover:text-ink; }
   .badge { @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .ledger-panel { @apply grid gap-4 border border-[#a7c89d] bg-[#d7e8d0] p-3 shadow-inner; }
+  .ledger-account { @apply grid grid-cols-[52px_58px_minmax(0,1fr)] items-center gap-x-2 gap-y-1 text-xs text-[#314d2b]; }
+  .ledger-label { @apply font-medium; }
+  .ledger-code { @apply h-6 w-full border border-[#9bb993] bg-[#edf6e9] px-1 text-xs text-[#213c1d] outline-none focus:ring-1 focus:ring-[#648d59]; }
+  .ledger-name { @apply h-6 w-full border border-[#9bb993] bg-[#edf6e9] px-2 text-xs text-[#213c1d]; }
+  .ledger-dropdown { @apply absolute z-20 mt-1 max-h-52 w-80 overflow-y-auto border border-[#789b70] bg-white shadow-lg; }
+  .ledger-dropdown button { @apply flex w-full gap-2 border-b border-slate-100 px-2 py-1.5 text-left text-xs hover:bg-[#d7e8d0]; }
+  .ledger-dropdown button strong { @apply min-w-10 text-[#315d29]; }
+  .ledger-dropdown button span { @apply text-slate-600; }
 }

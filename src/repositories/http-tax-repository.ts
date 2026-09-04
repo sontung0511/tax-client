@@ -1,4 +1,4 @@
-import type { AuditEntry, BusinessProfile, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 
 const AUTH_KEY = "tax-client.auth.v1";
@@ -53,6 +53,12 @@ export class HttpTaxRepository implements TaxRepository {
   saveTransaction(transaction: Transaction) { return this.request<Transaction>("/api/transactions", { method: "POST", body: JSON.stringify(transaction) }); }
   updateTransaction(transaction: Transaction) { return this.request<Transaction>(`/api/transactions/${encodeURIComponent(transaction.id)}`, { method: "PUT", body: JSON.stringify(transaction) }); }
   deleteTransaction(transactionId: string) { return this.request<void>(`/api/transactions/${encodeURIComponent(transactionId)}`, { method: "DELETE" }); }
+    getCounterparties(query?: string) { return this.request<Counterparty[]>(`/api/counterparties${query ? `?query=${encodeURIComponent(query)}` : ""}`); }
+    getCounterparty(code: string) { return this.request<Counterparty>(`/api/counterparties/${encodeURIComponent(code)}`); }
+    saveCounterparty(counterparty: Counterparty) { return this.request<Counterparty>(`/api/counterparties/${encodeURIComponent(counterparty.code)}`, { method: "PUT", body: JSON.stringify(counterparty) }); }
+  createCashReceipt(receipt: CashReceipt) { return this.request<Transaction>("/api/cash-receipts", { method: "POST", body: JSON.stringify(receipt) }); }
+  getAccounts(query?: string) { return this.request<Account[]>(`/api/accounts${query ? `?query=${encodeURIComponent(query)}` : ""}`); }
+  updateCashReceipt(receipt: CashReceipt & { id: string }) { return this.request<Transaction>(`/api/cash-receipts/${encodeURIComponent(receipt.id)}`, { method: "PUT", body: JSON.stringify(receipt) }); }
   importTransactions(items: Transaction[]) { return this.request<{ imported: number }>("/api/imports", { method: "POST", body: JSON.stringify({ items }) }); }
   saveDeclaration(declaration: TaxDeclaration) { return this.request<TaxDeclaration>(`/api/declarations/${encodeURIComponent(declaration.id)}`, { method: "PUT", body: JSON.stringify(declaration) }); }
   calculate(periodId: string) { return this.request<TaxBreakdown>("/api/calculate", { method: "POST", body: JSON.stringify({ periodId }) }); }
