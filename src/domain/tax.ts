@@ -91,21 +91,33 @@ export interface CashReceipt {
   debitAccount: string;
   creditAccount: string;
   amount: Vnd;
+  amountIncludesVAT?: boolean;
   currency: string;
   exchangeRate: number;
   convertedAmount: Vnd;
   revenueCategory: IndustryCode;
   invoiceNo: string;
+  invoiceSymbol?: string;
   invoiceDate: string;
+  detailCode?: string;
+  quantity?: string;
+  unitPrice?: Vnd;
   caseCode: string;
   collector: string;
   note: string;
   attachments: ReceiptAttachment[];
+  entries?: ReceiptAccountingEntry[];
+  invoices?: ReceiptInvoice[];
+  taxLines?: ReceiptTaxLine[];
   saveCounterparty: boolean;
 }
 
 export interface ReceiptAttachment { name: string; type: string; size: number; data: string; }
-export interface CashReceiptData extends Omit<CashReceipt, "id" | "periodId" | "receiptNo" | "counterpartyCode" | "counterpartyName" | "counterpartyTaxCode" | "counterpartyAddress" | "description" | "amount" | "revenueCategory" | "saveCounterparty"> {}
+export interface ReceiptAccountingEntry { id?: string; voucherId?: string; invoiceId?: string; debitAccount: string; creditAccount: string; amount: Vnd; description: string; kind: "normal" | "vat" | "cogs"; rate?: number; detailCode?: string; quantity?: string; unitPrice?: Vnd; revenueDetailId?: string; }
+export interface ReceiptInvoice { id?: string; voucherId?: string; invoiceNo: string; symbol: string; invoiceDate: string; taxCode: string; }
+export interface ReceiptTaxLine { id?: string; voucherId?: string; invoiceId?: string; revenueDetailId?: string; taxRate: number; taxableAmount: Vnd; taxAmount: Vnd; priceIncludesTax: boolean; }
+type CashReceiptDetailFields = "amountIncludesVAT" | "invoiceSymbol" | "detailCode" | "quantity" | "unitPrice" | "entries" | "invoices" | "taxLines";
+export type CashReceiptData = Omit<CashReceipt, "id" | "periodId" | "receiptNo" | "counterpartyCode" | "counterpartyName" | "counterpartyTaxCode" | "counterpartyAddress" | "description" | "amount" | "revenueCategory" | "saveCounterparty" | CashReceiptDetailFields> & Partial<Pick<CashReceipt, CashReceiptDetailFields>>;
 
 export interface CashPayment {
   id?: string;
