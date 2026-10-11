@@ -2,13 +2,14 @@
 
 import { Icon } from "./icons";
 
-export type View = "dashboard" | "profile" | "periods" | "transactions" | "books" | "import" | "result" | "declarations" | "history" | "guide";
+export type View = "dashboard" | "profile" | "periods" | "transactions" | "catalog" | "books" | "import" | "result" | "declarations" | "history" | "guide";
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "Tổng quan", icon: "dashboard" },
   { id: "profile", label: "Hồ sơ kinh doanh", icon: "profile" },
   { id: "periods", label: "Kỳ kê khai", icon: "periods" },
   { id: "transactions", label: "Thu chi & hóa đơn", icon: "transactions" },
+  { id: "catalog", label: "Danh mục TK & đối tượng", icon: "books" },
   { id: "books", label: "Sổ sách & công nợ", icon: "books" },
   { id: "import", label: "Import Excel", icon: "import" },
   { id: "result", label: "Kết quả tính thuế", icon: "result" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatVnd, parseVnd, type BusinessProfile, type CashPayment, type CashReceipt, type TaxBreakdown, type TaxDatabase, type TaxDeclaration, type Transaction } from "@/domain/tax";
+import { formatVnd, parseVnd, type Account, type BusinessProfile, type CashPayment, type CashReceipt, type Counterparty, type TaxBreakdown, type TaxDatabase, type TaxDeclaration, type Transaction } from "@/domain/tax";
 import { taxApi } from "@/services/tax-api";
 import { calculateTax } from "@/tax-engine/calculate";
 import { validateTransactions } from "@/services/validate-transactions";
@@ -243,10 +243,56 @@ function UserGuide({ go }: { go: (view: View) => void }) {
 
 function StatusHelp({ label, text, color }: { label: string; text: string; color: string }) { return <div className="rounded-xl border p-4"><span className={`badge ${color}`}>{label}</span><p className="mt-2 text-xs text-slate-500">{text}</p></div>; }
 
+function computeClosingEntries(items: Transaction[]) {
+  const postings = items.flatMap(item => {
+    if (item.cashReceipt?.entries?.length) return item.cashReceipt.entries.map(e => ({ debit: e.debitAccount, credit: e.creditAccount, amount: e.amount }));
+    if (item.cashPayment) return [{ debit: item.cashPayment.debitAccount, credit: item.cashPayment.creditAccount, amount: item.amount }];
+    return [];
+  });
+  const balance = (code: string) => postings.reduce((sum, p) => sum + (p.debit.startsWith(code) ? p.amount : 0) - (p.credit.startsWith(code) ? p.amount : 0), 0);
+  const entries: { description: string; debit: string; credit: string; amount: number }[] = [];
+  const revenue511 = balance("511"); if (revenue511 > 0) entries.push({ description: "Kết chuyển doanh thu bán hàng", debit: "511", credit: "911", amount: revenue511 });
+  const revenue515 = balance("515"); if (revenue515 > 0) entries.push({ description: "Kết chuyển doanh thu hoạt động tài chính", debit: "515", credit: "911", amount: revenue515 });
+  const cogs632 = balance("632"); if (cogs632 > 0) entries.push({ description: "Kết chuyển giá vốn hàng bán", debit: "911", credit: "632", amount: cogs632 });
+  const expense642 = balance("642"); if (expense642 > 0) entries.push({ description: "Kết chuyển chi phí quản lý kinh doanh", debit: "911", credit: "642", amount: expense642 });
+  const profit = (revenue511 + revenue515) - (cogs632 + expense642);
+  if (profit > 0) entries.push({ description: "Kết chuyển lợi nhuận sau thuế", debit: "911", credit: "421", amount: profit });
+  else if (profit < 0) entries.push({ description: "Kết chuyển lỗ trong kỳ", debit: "421", credit: "911", amount: -profit });
+  return entries;
+}
+
+function addClosingEntriesSheet(book: import("exceljs").Workbook, period: TaxDatabase["periods"][number], items: Transaction[]) {
+  const sheet = book.addWorksheet("Ket chuyen cuoi ky");
+  const quarter = period.id.match(/q([1-4])/i)?.[1];
+  const romanQuarter = quarter ? ["I", "II", "III", "IV"][Number(quarter) - 1] : "";
+  const title = quarter ? `Chứng từ kết chuyển cuối kỳ (99) - Quý ${romanQuarter} Năm ${period.year}` : `Chứng từ kết chuyển cuối kỳ (99) - ${period.label}`;
+  sheet.addRow([title]); sheet.mergeCells("A1:F1"); sheet.addRow([]);
+  sheet.addRow(["STT", "Diễn giải", "TK Nợ", "TK Có", "Số tiền", "Ghi chú"]);
+  const entries = computeClosingEntries(items);
+  entries.forEach((entry, index) => sheet.addRow([index + 1, entry.description, entry.debit, entry.credit, entry.amount, ""]));
+  sheet.addRow([]); const totalRow = sheet.addRow(["", "TỔNG CỘNG", "", "", entries.reduce((sum, e) => sum + e.amount, 0), ""]); totalRow.font = { bold: true }; totalRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEFE7" } };
+  sheet.columns = [{ width: 8 }, { width: 48 }, { width: 14 }, { width: 14 }, { width: 20 }, { width: 24 }];
+  sheet.getRow(1).font = { bold: true, size: 14 }; sheet.getRow(1).alignment = { horizontal: "center" }; sheet.getRow(1).height = 22;
+  sheet.getRow(3).font = { bold: true, color: { argb: "FFFFFFFF" } }; sheet.getRow(3).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4D3B" } }; sheet.getRow(3).alignment = { horizontal: "center", vertical: "middle" }; sheet.getRow(3).height = 28;
+  for (let row = 4; row <= sheet.rowCount; row++) sheet.getCell(row, 5).numFmt = "#,##0;[Red]-#,##0";
+  return entries;
+}
+
 function History({ data }: { data: TaxDatabase }) {
+  const [exportMessage, setExportMessage] = useState<{ text: string; kind: "warn" | "ok" } | null>(null);
   async function exportExcel() {
+    setExportMessage(null);
     const ExcelJS = await import("exceljs"); const period = data.periods[0]; const [items, calculated] = await Promise.all([taxApi.exportData(period.id), taxApi.calculate(period.id)]); const result = period.taxSnapshot ?? calculated; const book = new ExcelJS.Workbook();
+    const closingEntries = computeClosingEntries(items);
+    if (closingEntries.length === 0) {
+      setExportMessage({ text: "Chưa có dữ liệu doanh thu/chi phí để lập chứng từ kết chuyển cuối kỳ (99). Kiểm tra lại giao dịch trong kỳ.", kind: "warn" });
+      return;
+    }
+    const has911 = items.some(item => (item.cashReceipt?.entries ?? []).some(e => e.debitAccount.startsWith("911") || e.creditAccount.startsWith("911")) || item.cashPayment?.debitAccount.startsWith("911") || item.cashPayment?.creditAccount.startsWith("911"));
+    if (!has911) setExportMessage({ text: "Chứng từ kết chuyển cuối kỳ (TK 911) chưa được hạch toán thủ công. File Excel bao gồm bảng kết chuyển tự động tính từ số dư tài khoản.", kind: "warn" });
+    else setExportMessage({ text: "Đã có chứng từ kết chuyển cuối kỳ. Xuất Excel thành công.", kind: "ok" });
     addTrialBalanceSheet(book, period, items, data.transactions);
+    addClosingEntriesSheet(book, period, items);
     const summary = book.addWorksheet("Tong hop thue"); summary.addRows([["Kỳ", period.label], ["Phiên bản công thức", result.formulaVersion], ["Doanh thu", result.revenue], ["Thuế GTGT", result.vat], ["Thuế thu nhập", result.pit], ["Đã nộp", result.paid], ["Còn phải nộp", result.remaining]]);
     addReceiptDetailSheet(book.addWorksheet("Chi tiet doanh thu"), items.filter(i => i.type === "revenue"));
     addTransactionSheet(book.addWorksheet("Chi phi"), items.filter(i => i.type === "expense"));
@@ -254,7 +300,7 @@ function History({ data }: { data: TaxDatabase }) {
     addAccountingBookSheets(book, data.profile.householdTaxMethod ?? "revenue_percentage", items);
     downloadBuffer(await book.xlsx.writeBuffer(), `bao-cao-${period.id}.xlsx`);
   }
-  return <><Header eyebrow="Đối soát" title="Lịch sử & xuất dữ liệu" description="Xuất dữ liệu phục vụ kê khai để kiểm tra thủ công; ứng dụng không gửi lên Thuế điện tử."/><div className="grid gap-5 lg:grid-cols-[1fr_2fr]"><section className="card h-fit"><h2 className="section-title">Bộ báo cáo Excel</h2><p className="mt-2 text-sm leading-6 text-slate-500">Gồm tổng hợp thuế, doanh thu, chi phí, công nợ và đúng nhóm sổ Thông tư 152 đã chọn trong Hồ sơ.</p><button onClick={() => void exportExcel()} className="primary mt-6 w-full">Xuất bộ báo cáo</button></section><section className="card"><h2 className="section-title">Lịch sử chỉnh sửa</h2><div className="mt-6 space-y-6">{data.audit.map((entry) => <div key={entry.id} className="relative border-l-2 border-mint pl-6 before:absolute before:-left-[7px] before:top-0 before:h-3 before:w-3 before:rounded-full before:bg-pine"><p className="font-semibold text-ink">{entry.action}</p><p className="mt-1 text-sm text-slate-500">{entry.detail}</p><p className="mt-2 text-xs text-slate-400">{new Date(entry.at).toLocaleString("vi-VN")}</p></div>)}</div></section></div></>;
+  return <><Header eyebrow="Đối soát" title="Lịch sử & xuất dữ liệu" description="Xuất dữ liệu phục vụ kê khai để kiểm tra thủ công; ứng dụng không gửi lên Thuế điện tử."/><div className="grid gap-5 lg:grid-cols-[1fr_2fr]"><section className="card h-fit"><h2 className="section-title">Bộ báo cáo Excel</h2><p className="mt-2 text-sm leading-6 text-slate-500">Gồm tổng hợp thuế, doanh thu, chi phí, công nợ, bảng kết chuyển cuối kỳ (99) và đúng nhóm sổ Thông tư 152 đã chọn trong Hồ sơ.</p>{exportMessage && <p className={`mt-3 rounded-xl p-3 text-sm ${exportMessage.kind === "warn" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}>{exportMessage.text}</p>}<button onClick={() => void exportExcel()} className="primary mt-6 w-full">Xuất bộ báo cáo</button></section><section className="card"><h2 className="section-title">Lịch sử chỉnh sửa</h2><div className="mt-6 space-y-6">{data.audit.map((entry) => <div key={entry.id} className="relative border-l-2 border-mint pl-6 before:absolute before:-left-[7px] before:top-0 before:h-3 before:w-3 before:rounded-full before:bg-pine"><p className="font-semibold text-ink">{entry.action}</p><p className="mt-1 text-sm text-slate-500">{entry.detail}</p><p className="mt-2 text-xs text-slate-400">{new Date(entry.at).toLocaleString("vi-VN")}</p></div>)}</div></section></div></>;
 }
 
 function addTransactionSheet(sheet: import("exceljs").Worksheet, items: Transaction[]) {
@@ -490,6 +536,129 @@ const voucherTypePlaceholders = [
   "15. Phiếu xuất kho thành phẩm", "16. Phiếu nhập kho thành phẩm", "17. Chứng từ chi lương", "99. Chứng từ kết chuyển cuối kỳ"
 ];
 
+function Catalog({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
+  const [tab, setTab] = useState<"accounts" | "counterparties">("accounts");
+  return <>
+    <Header eyebrow="Danh mục" title="Tài khoản & đối tượng" description="Tự quản lý danh mục tài khoản kế toán và đối tượng (khách hàng/nhà cung cấp) dùng khi lập chứng từ."/>
+    <div className="mb-5 flex flex-wrap gap-2"><button type="button" onClick={() => setTab("accounts")} className={tab === "accounts" ? "primary" : "secondary"}>Tài khoản</button><button type="button" onClick={() => setTab("counterparties")} className={tab === "counterparties" ? "primary" : "secondary"}>Đối tượng</button></div>
+    {tab === "accounts" ? <AccountCatalog data={data} refresh={refresh}/> : <CounterpartyCatalog data={data} refresh={refresh}/>}
+  </>;
+}
+
+function AccountCatalog({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
+  const accounts = useMemo(() => [...(data.accounts ?? [])].sort((a, b) => a.code.localeCompare(b.code)), [data.accounts]);
+  const blank = (): Account => ({ code: "", name: "", parentCode: "", isActive: true });
+  const [form, setForm] = useState<Account>(blank());
+  const [editing, setEditing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = <K extends keyof Account>(key: K, value: Account[K]) => setForm((current) => ({ ...current, [key]: value }));
+
+  function edit(item: Account) { setForm(item); setEditing(true); setMessage(""); }
+  function startNew() { setForm(blank()); setEditing(false); setMessage(""); }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault(); setMessage("");
+    if (!/^\d{3,10}$/.test(form.code.trim())) { setMessage("Mã tài khoản phải gồm 3-10 chữ số."); return; }
+    if (!form.name.trim()) { setMessage("Tên tài khoản không được để trống."); return; }
+    try {
+      setBusy(true);
+      const payload: Account = { ...form, code: form.code.trim(), name: form.name.trim(), parentCode: form.parentCode?.trim() || undefined };
+      if (editing) await taxApi.updateAccount(payload); else await taxApi.createAccount(payload);
+      await refresh();
+      setMessage(editing ? "Đã cập nhật tài khoản." : "Đã tạo tài khoản.");
+      if (!editing) startNew();
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể lưu tài khoản"); }
+    finally { setBusy(false); }
+  }
+
+  async function toggleActive(item: Account) {
+    setMessage("");
+    try { if (item.isActive) await taxApi.deactivateAccount(item.code); else await taxApi.updateAccount({ ...item, isActive: true }); await refresh(); }
+    catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể cập nhật trạng thái"); }
+  }
+
+  return <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+    <form onSubmit={submit} className="card grid gap-4 h-fit">
+      <h2 className="section-title">{editing ? `Sửa tài khoản ${form.code}` : "Thêm tài khoản mới"}</h2>
+      {message && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{message}</p>}
+      <Field label="Mã tài khoản *"><input className="field disabled:bg-slate-50" disabled={editing} value={form.code} onChange={(e) => set("code", e.target.value)}/></Field>
+      <Field label="Tên tài khoản *"><input className="field" value={form.name} onChange={(e) => set("name", e.target.value)}/></Field>
+      <Field label="Tài khoản cha"><input list="account-parent-codes" className="field" value={form.parentCode ?? ""} onChange={(e) => set("parentCode", e.target.value)}/><datalist id="account-parent-codes">{accounts.map((item) => <option key={item.code} value={item.code}/>)}</datalist></Field>
+      <label className="text-sm"><input type="checkbox" checked={form.isActive} onChange={(e) => set("isActive", e.target.checked)}/> Đang sử dụng</label>
+      <div className="flex gap-2"><button disabled={busy} className="primary">{editing ? "Lưu thay đổi" : "Thêm tài khoản"}</button>{editing && <button type="button" onClick={startNew} className="secondary">Hủy sửa</button>}</div>
+    </form>
+    <section className="card">
+      <h2 className="section-title">Danh mục tài khoản ({accounts.length})</h2>
+      <div className="mt-4 overflow-x-auto">
+      <table><thead><tr><th>Mã TK</th><th>Tên tài khoản</th><th>TK cha</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>{accounts.map((item) => <tr key={item.code} className={!item.isActive ? "opacity-50" : ""}>
+          <td className="font-medium text-ink">{item.code}</td><td>{item.name}</td><td>{item.parentCode || "—"}</td>
+          <td><span className={`badge ${item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{item.isActive ? "Đang dùng" : "Ngừng dùng"}</span></td>
+          <td><div className="flex gap-2"><button type="button" onClick={() => edit(item)} className="link-button">Sửa</button><button type="button" onClick={() => void toggleActive(item)} className="link-button">{item.isActive ? "Ngừng dùng" : "Kích hoạt"}</button></div></td>
+        </tr>)}</tbody>
+      </table>
+      </div>
+    </section>
+  </div>;
+}
+
+function CounterpartyCatalog({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
+  const counterparties = useMemo(() => [...(data.counterparties ?? [])].sort((a, b) => a.code.localeCompare(b.code)), [data.counterparties]);
+  const blank = (): Counterparty => ({ code: "", name: "", taxCode: "", address: "" });
+  const [form, setForm] = useState<Counterparty>(blank());
+  const [editing, setEditing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = <K extends keyof Counterparty>(key: K, value: Counterparty[K]) => setForm((current) => ({ ...current, [key]: value }));
+
+  function edit(item: Counterparty) { setForm(item); setEditing(true); setMessage(""); }
+  function startNew() { setForm(blank()); setEditing(false); setMessage(""); }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault(); setMessage("");
+    if (!form.code.trim() || !form.name.trim()) { setMessage("Mã và tên đối tượng không được để trống."); return; }
+    try {
+      setBusy(true);
+      await taxApi.saveCounterparty({ ...form, code: form.code.trim(), name: form.name.trim() });
+      await refresh();
+      setMessage(editing ? "Đã cập nhật đối tượng." : "Đã tạo đối tượng.");
+      if (!editing) startNew();
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể lưu đối tượng"); }
+    finally { setBusy(false); }
+  }
+
+  async function remove(item: Counterparty) {
+    if (!window.confirm(`Xóa đối tượng "${item.name}" (${item.code})?`)) return;
+    setMessage("");
+    try { await taxApi.deleteCounterparty(item.code); await refresh(); if (form.code === item.code) startNew(); }
+    catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể xóa đối tượng"); }
+  }
+
+  return <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+    <form onSubmit={submit} className="card grid gap-4 h-fit">
+      <h2 className="section-title">{editing ? `Sửa đối tượng ${form.code}` : "Thêm đối tượng mới"}</h2>
+      {message && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{message}</p>}
+      <Field label="Mã đối tượng *"><input className="field disabled:bg-slate-50" disabled={editing} value={form.code} onChange={(e) => set("code", e.target.value)}/></Field>
+      <Field label="Tên đối tượng *"><input className="field" value={form.name} onChange={(e) => set("name", e.target.value)}/></Field>
+      <Field label="Mã số thuế"><input className="field" value={form.taxCode} onChange={(e) => set("taxCode", e.target.value)}/></Field>
+      <Field label="Địa chỉ"><input className="field" value={form.address} onChange={(e) => set("address", e.target.value)}/></Field>
+      <div className="flex gap-2"><button disabled={busy} className="primary">{editing ? "Lưu thay đổi" : "Thêm đối tượng"}</button>{editing && <button type="button" onClick={startNew} className="secondary">Hủy sửa</button>}</div>
+    </form>
+    <section className="card">
+      <h2 className="section-title">Danh mục đối tượng ({counterparties.length})</h2>
+      <div className="mt-4 overflow-x-auto">
+      <table><thead><tr><th>Mã</th><th>Tên</th><th>MST</th><th>Địa chỉ</th><th></th></tr></thead>
+        <tbody>{counterparties.map((item) => <tr key={item.code}>
+          <td className="font-medium text-ink">{item.code}</td><td>{item.name}</td><td>{item.taxCode || "—"}</td><td>{item.address || "—"}</td>
+          <td><div className="flex gap-2"><button type="button" onClick={() => edit(item)} className="link-button">Sửa</button><button type="button" onClick={() => void remove(item)} className="link-button text-red-600">Xóa</button></div></td>
+        </tr>)}</tbody>
+      </table>
+      </div>
+    </section>
+  </div>;
+}
+
 function VoucherEntry({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
   const [docType, setDocType] = useState<"" | "cash_receipt" | "cash_payment">("");
   function endSession() { setDocType(""); }
@@ -513,6 +682,7 @@ export function ViewContent({ view, data, activePeriodId, selectPeriod, refresh,
   if (view === "profile") return <Profile data={data} refresh={refresh}/>;
   if (view === "periods") return <><PeriodPicker data={data} activePeriodId={activePeriodId} selectPeriod={selectPeriod} go={go}/><Periods data={data} go={go}/></>;
   if (view === "transactions") return <VoucherEntry data={data} refresh={refresh}/>;
+  if (view === "catalog") return <Catalog data={data} refresh={refresh}/>;
   if (view === "books") return <Books data={data} go={go}/>;
   if (view === "import") return <><ImportExcel data={data} refresh={refresh}/><ElectronicInvoiceImport/></>;
   if (view === "result") return data.profile.taxpayerType === "enterprise" ? <Declarations data={data} refresh={refresh}/> : <Result data={data} refresh={refresh}/>;

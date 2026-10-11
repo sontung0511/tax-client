@@ -118,6 +118,14 @@ export class LocalTaxRepository implements TaxRepository {
       return counterparty;
     }
 
+    async deleteCounterparty(code: string) {
+      const data = this.read();
+      if (!(data.counterparties ?? []).some((item) => item.code === code)) throw new Error("Không tìm thấy đối tượng");
+      data.counterparties = (data.counterparties ?? []).filter((item) => item.code !== code);
+      data.audit.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), action: "Xóa đối tượng", detail: code });
+      this.write(data);
+    }
+
     async createCashReceipt(receipt: CashReceipt) {
       const data = this.read();
       if (!data.periods.some((period) => period.id === receipt.periodId)) throw new Error("Không tìm thấy kỳ kê khai");
@@ -129,9 +137,44 @@ export class LocalTaxRepository implements TaxRepository {
     return this.saveTransaction({ id: crypto.randomUUID(), periodId: receipt.periodId, date: receipt.voucherDate, type: "revenue", description: receipt.description.trim(), invoiceNo: receipt.receiptNo.trim(), documentNo: receipt.receiptNo.trim(), amount: receipt.convertedAmount, vatAmount, revenueCategory: receipt.revenueCategory, paymentStatus: "paid", outstandingAmount: 0, voucherType: "cash_receipt", counterpartyCode: receipt.counterpartyCode.trim(), counterpartyName: receipt.counterpartyName.trim(), counterpartyTaxCode: receipt.counterpartyTaxCode.trim(), counterpartyAddress: receipt.counterpartyAddress.trim(), cashReceipt: { voucherDate: receipt.voucherDate, accountingDate: receipt.accountingDate, status: receipt.status, contactName: receipt.contactName, debitAccount: receipt.debitAccount, creditAccount: receipt.creditAccount, currency: receipt.currency, exchangeRate: receipt.exchangeRate, convertedAmount: receipt.convertedAmount, amountIncludesVAT: receipt.amountIncludesVAT, invoiceNo: receipt.invoiceNo, invoiceSymbol: receipt.invoiceSymbol, invoiceDate: receipt.invoiceDate, detailCode: receipt.detailCode, quantity: receipt.quantity, unitPrice: receipt.unitPrice, caseCode: receipt.caseCode, collector: receipt.collector, note: receipt.note, attachments: receipt.attachments, entries: receipt.entries, invoices: receipt.invoices, taxLines: receipt.taxLines } });
   }
 
-  async getAccounts(query?: string): Promise<Account[]> {
+  async getAccounts(query?: string, includeInactive?: boolean): Promise<Account[]> {
     const needle = query?.trim().toLowerCase() ?? "";
-    return (this.read().accounts ?? []).filter((item) => !needle || item.code.includes(needle) || item.name.toLowerCase().includes(needle));
+    return (this.read().accounts ?? []).filter((item) => (item.isActive || includeInactive) && (!needle || item.code.includes(needle) || item.name.toLowerCase().includes(needle)));
+  }
+
+  async createAccount(account: Account) {
+    const data = this.read();
+    data.accounts ??= [];
+    if (data.accounts.some((item) => item.code === account.code)) throw new Error("Mã tài khoản đã tồn tại");
+    if (account.parentCode && !data.accounts.some((item) => item.code === account.parentCode)) throw new Error("Tài khoản cha không tồn tại");
+    data.accounts.push(account);
+    data.audit.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), action: "Tạo tài khoản", detail: `${account.code} · ${account.name}` });
+    this.write(data);
+    return account;
+  }
+
+  async updateAccount(account: Account) {
+    const data = this.read();
+    data.accounts ??= [];
+    if (account.parentCode === account.code) throw new Error("Tài khoản cha không hợp lệ");
+    if (account.parentCode && !data.accounts.some((item) => item.code === account.parentCode)) throw new Error("Tài khoản cha không tồn tại");
+    const index = data.accounts.findIndex((item) => item.code === account.code);
+    if (index < 0) throw new Error("Không tìm thấy tài khoản");
+    data.accounts[index] = account;
+    data.audit.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), action: "Cập nhật tài khoản", detail: `${account.code} · ${account.name}` });
+    this.write(data);
+    return account;
+  }
+
+  async deactivateAccount(code: string) {
+    const data = this.read();
+    data.accounts ??= [];
+    const index = data.accounts.findIndex((item) => item.code === code);
+    if (index < 0) throw new Error("Không tìm thấy tài khoản");
+    data.accounts[index] = { ...data.accounts[index], isActive: false };
+    data.audit.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), action: "Ngừng sử dụng tài khoản", detail: code });
+    this.write(data);
+    return data.accounts[index];
   }
 
   async updateCashReceipt(receipt: CashReceipt & { id: string }) {

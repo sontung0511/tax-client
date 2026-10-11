@@ -56,8 +56,18 @@ export class HttpTaxRepository implements TaxRepository {
     getCounterparties(query?: string) { return this.request<Counterparty[]>(`/api/counterparties${query ? `?query=${encodeURIComponent(query)}` : ""}`); }
     getCounterparty(code: string) { return this.request<Counterparty>(`/api/counterparties/${encodeURIComponent(code)}`); }
     saveCounterparty(counterparty: Counterparty) { return this.request<Counterparty>(`/api/counterparties/${encodeURIComponent(counterparty.code)}`, { method: "PUT", body: JSON.stringify(counterparty) }); }
+    deleteCounterparty(code: string) { return this.request<void>(`/api/counterparties/${encodeURIComponent(code)}`, { method: "DELETE" }); }
   createCashReceipt(receipt: CashReceipt) { return this.request<Transaction>("/api/cash-receipts", { method: "POST", body: JSON.stringify(receipt) }); }
-  getAccounts(query?: string) { return this.request<Account[]>(`/api/accounts${query ? `?query=${encodeURIComponent(query)}` : ""}`); }
+  getAccounts(query?: string, includeInactive?: boolean) {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (includeInactive) params.set("includeInactive", "true");
+    const qs = params.toString();
+    return this.request<Account[]>(`/api/accounts${qs ? `?${qs}` : ""}`);
+  }
+  createAccount(account: Account) { return this.request<Account>("/api/accounts", { method: "POST", body: JSON.stringify(account) }); }
+  updateAccount(account: Account) { return this.request<Account>(`/api/accounts/${encodeURIComponent(account.code)}`, { method: "PUT", body: JSON.stringify(account) }); }
+  deactivateAccount(code: string) { return this.request<Account>(`/api/accounts/${encodeURIComponent(code)}`, { method: "DELETE" }); }
   updateCashReceipt(receipt: CashReceipt & { id: string }) { return this.request<Transaction>(`/api/cash-receipts/${encodeURIComponent(receipt.id)}`, { method: "PUT", body: JSON.stringify(receipt) }); }
   createCashPayment(payment: CashPayment) { return this.request<Transaction>("/api/cash-payments", { method: "POST", body: JSON.stringify(payment) }); }
   updateCashPayment(payment: CashPayment & { id: string }) { return this.request<Transaction>(`/api/cash-payments/${encodeURIComponent(payment.id)}`, { method: "PUT", body: JSON.stringify(payment) }); }

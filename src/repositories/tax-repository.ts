@@ -14,8 +14,12 @@ export interface TaxRepository {
     getCounterparties(query?: string): Promise<Counterparty[]>;
     getCounterparty(code: string): Promise<Counterparty>;
     saveCounterparty(counterparty: Counterparty): Promise<Counterparty>;
+    deleteCounterparty(code: string): Promise<void>;
   createCashReceipt(receipt: CashReceipt): Promise<Transaction>;
-  getAccounts(query?: string): Promise<Account[]>;
+  getAccounts(query?: string, includeInactive?: boolean): Promise<Account[]>;
+  createAccount(account: Account): Promise<Account>;
+  updateAccount(account: Account): Promise<Account>;
+  deactivateAccount(code: string): Promise<Account>;
   updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
   createCashPayment(payment: CashPayment): Promise<Transaction>;
   updateCashPayment(payment: CashPayment & { id: string }): Promise<Transaction>;

@@ -13,8 +13,12 @@ export interface TaxApi {
     getCounterparties(query?: string): Promise<Counterparty[]>;
     getCounterparty(code: string): Promise<Counterparty>;
     saveCounterparty(counterparty: Counterparty): Promise<Counterparty>;
+    deleteCounterparty(code: string): Promise<void>;
   createCashReceipt(receipt: CashReceipt): Promise<Transaction>;
-  getAccounts(query?: string): Promise<Account[]>;
+  getAccounts(query?: string, includeInactive?: boolean): Promise<Account[]>;
+  createAccount(account: Account): Promise<Account>;
+  updateAccount(account: Account): Promise<Account>;
+  deactivateAccount(code: string): Promise<Account>;
   updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
   createCashPayment(payment: CashPayment): Promise<Transaction>;
   updateCashPayment(payment: CashPayment & { id: string }): Promise<Transaction>;
@@ -36,8 +40,12 @@ export const taxApi: TaxApi = {
     getCounterparties: (query) => taxRepository.getCounterparties(query),
     getCounterparty: (code) => taxRepository.getCounterparty(code),
     saveCounterparty: (counterparty) => taxRepository.saveCounterparty(counterparty),
+    deleteCounterparty: (code) => taxRepository.deleteCounterparty(code),
   createCashReceipt: (receipt) => taxRepository.createCashReceipt(receipt),
-  getAccounts: (query) => taxRepository.getAccounts(query),
+  getAccounts: (query, includeInactive) => taxRepository.getAccounts(query, includeInactive),
+  createAccount: (account) => taxRepository.createAccount(account),
+  updateAccount: (account) => taxRepository.updateAccount(account),
+  deactivateAccount: (code) => taxRepository.deactivateAccount(code),
   updateCashReceipt: (receipt) => taxRepository.updateCashReceipt(receipt),
   createCashPayment: (payment) => taxRepository.createCashPayment(payment),
   updateCashPayment: (payment) => taxRepository.updateCashPayment(payment),
@@ -52,7 +60,8 @@ export const taxApiContracts = {
   login: "POST /api/login",
   periods: "GET /api/tax-periods",
   transactions: "GET|POST /api/transactions; PUT|DELETE /api/transactions/{id}",
-    counterparties: "GET /api/counterparties; GET|PUT /api/counterparties/{code}",
+    counterparties: "GET /api/counterparties; GET|PUT|DELETE /api/counterparties/{code}",
+    accounts: "GET|POST /api/accounts; PUT|DELETE /api/accounts/{code}",
   cashReceipts: "POST /api/cash-receipts",
   cashPayments: "POST /api/cash-payments",
   calculate: "POST /api/calculate",
