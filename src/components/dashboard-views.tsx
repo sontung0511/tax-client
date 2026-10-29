@@ -604,7 +604,7 @@ type VoucherDocType = "cash_receipt" | "cash_payment" | "carry_forward";
 const voucherTypeOptions: { value: VoucherDocType; label: string }[] = [
   { value: "cash_receipt", label: "01. Phiếu thu tiền mặt" },
   { value: "cash_payment", label: "02. Phiếu chi tiền mặt" },
-  { value: "carry_forward", label: "99. Chứng từ kết chuyển cuối kỳ" }
+  { value: "carry_forward", label: "18. Chứng từ kết chuyển cuối kỳ" }
 ];
 const voucherTypePlaceholders = [
   "03. Hàng mua chưa thanh toán", "04. Phiếu xuất kho nguyên vật liệu", "05. Phiếu chuyển kho",
