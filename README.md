@@ -40,3 +40,4 @@ Tham chiếu hồ sơ/thủ tục: Thông tư 18/2026/TT-BTC và Thông tư 50/2
 Trong Hồ sơ có thể chuyển đối tượng sang doanh nghiệp/công ty và khai báo loại hình, phương pháp GTGT, chế độ kế toán. Module tờ khai doanh nghiệp hiện quản lý bản nháp, kiểm tra cơ bản và khóa phiên bản cho 01/GTGT, 05/KK-TNCN và 03/TNDN. Kết xuất XML và mã vạch đang chủ động tắt cho đến khi có schema/quy tắc chính thức và bộ test đối chiếu HTKK/iTaxViewer.
 
 > Tỷ lệ thuế hiện tại chỉ phục vụ prototype, cần được nghiệp vụ xác nhận trước khi dùng thực tế.
+go run ./cmd/server migrate

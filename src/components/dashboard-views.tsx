@@ -118,7 +118,7 @@ function Transactions({ data, refresh }: { data: TaxDatabase; refresh: () => Pro
   }
   const items = data.transactions.filter((item) => item.periodId === data.periods[0].id);
   const issues = validateTransactions(items);
-  return <><Header eyebrow="Chứng từ" title="Nhập chứng từ phát sinh" description={`Đang nhập dữ liệu cho ${data.periods[0].label}. Phiếu thu tiền mặt được ghi nhận vào doanh thu và sổ tiền hiện có.`}/>{issues.length > 0 && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Có {issues.length} cảnh báo thiếu, sai hoặc trùng dữ liệu cần rà soát.</div>}{message && <p className="mb-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}<section className="card mb-6"><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Loại chứng từ" wide><select className="field" value="cash_receipt"><option value="cash_receipt">Phiếu thu tiền mặt</option><option disabled>Phiếu chi tiền mặt · Phát triển sau</option><option disabled>Giấy báo Có · Phát triển sau</option><option disabled>Giấy báo Nợ · Phát triển sau</option></select></Field></div><form onSubmit={submit} className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Ngày phiếu thu"><input required type="date" className="field" value={date} onChange={(e) => setDate(e.target.value)}/></Field><Field label="Số phiếu thu"><input required className="field" placeholder="PT-0001" value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)}/></Field><Field label="Mã đối tượng"><input required list="counterparty-codes" className="field" placeholder="Nhập hoặc chọn mã" value={counterpartyCode} onChange={(e) => { setCounterpartyCode(e.target.value); setLookupState("idle"); setLookupMessage(""); }} onBlur={() => void lookupCounterparty()}/><datalist id="counterparty-codes">{counterparties.map(item => <option key={item.code} value={item.code} label={item.name}/>)}</datalist>{lookupState === "loading" && <span className="mt-1 block text-xs text-slate-500">Đang tải thông tin đối tượng…</span>}{lookupState === "not_found" && <span className="mt-1 block text-xs text-amber-700">{lookupMessage}</span>}{lookupState === "error" && <span className="mt-1 block text-xs text-red-600">{lookupMessage}</span>}</Field><Field label="Tên đối tượng"><input required className="field" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)}/></Field><Field label="Mã số thuế"><input className="field" value={counterpartyTaxCode} onChange={(e) => setCounterpartyTaxCode(e.target.value)}/></Field><Field label="Địa chỉ" wide><input className="field" value={counterpartyAddress} onChange={(e) => setCounterpartyAddress(e.target.value)}/></Field><Field label="Nội dung thu"><input required className="field" placeholder="Nội dung phiếu thu" value={description} onChange={(e) => setDescription(e.target.value)}/></Field><Field label="Nhóm ngành"><select className="field" value={category} onChange={(e) => setCategory(e.target.value as BusinessProfile["industry"])}><option value="distribution">Phân phối</option><option value="services">Dịch vụ</option><option value="production">Sản xuất, vận tải</option><option value="other">Nhóm khác</option></select></Field><Field label="Số tiền thu (VND)"><input required className="field" inputMode="numeric" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}/></Field><label className="flex items-end gap-2 pb-3 text-sm text-ink"><input type="checkbox" checked={saveCounterparty} onChange={(e) => setSaveCounterparty(e.target.checked)}/> Lưu/cập nhật địa chỉ vào danh mục</label><div className="flex items-end"><button disabled={Boolean(data.periods[0].lockedAt) || saving} className="primary w-full disabled:opacity-40">{saving ? "Đang lưu…" : "Lập phiếu thu"}</button></div></form></section><section className="card overflow-x-auto"><table><thead><tr><th>Ngày</th><th>Loại</th><th>Nhóm ngành</th><th>Nội dung</th><th>Hóa đơn</th><th className="text-right">Số tiền</th><th className="text-right">Thuế GTGT</th><th></th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className={issues.some(issue => issue.transactionId === item.id) ? "bg-amber-50/50" : ""}><td>{editingDateId === item.id ? <input aria-label={`Ngày của ${item.description}`} type="date" className="field min-w-36" value={editingDate} onChange={(e) => setEditingDate(e.target.value)}/> : new Date(`${item.date}T00:00:00`).toLocaleDateString("vi-VN")}</td><td><span className={`badge ${item.type === "revenue" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{item.voucherType === "cash_receipt" ? "Phiếu thu" : item.type === "revenue" ? "Doanh thu" : "Chi phí"}</span></td><td>{item.revenueCategory}</td><td className="font-medium text-ink">{item.description}</td><td>{item.documentNo || item.invoiceNo}</td><td className="text-right font-semibold">{formatVnd(item.amount)}</td><td className="text-right">{formatVnd(item.vatAmount ?? 0)}</td><td>{editingDateId === item.id ? <div className="flex gap-2"><button disabled={Boolean(data.periods[0].lockedAt)} onClick={() => void saveDate(item)} className="link-button">Lưu</button><button onClick={() => setEditingDateId("")} className="text-xs text-slate-500">Hủy</button></div> : <button disabled={Boolean(data.periods[0].lockedAt)} onClick={() => { setEditingDateId(item.id); setEditingDate(item.date); setMessage(""); }} className="link-button disabled:opacity-40">Sửa ngày</button>}</td></tr>)}</tbody></table></section></>;
+  return <><Header eyebrow="Chứng từ" title="Nhập chứng từ phát sinh" description={`Đang nhập dữ liệu cho ${data.periods[0].label}. Phiếu thu tiền mặt được ghi nhận vào doanh thu và sổ tiền hiện có.`}/>{issues.length > 0 && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Có {issues.length} cảnh báo thiếu, sai hoặc trùng dữ liệu cần rà soát.</div>}{message && <p className="mb-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}<section className="card mb-6"><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Loại chứng từ" wide><select className="field" value="cash_receipt"><option value="cash_receipt">Phiếu thu tiền mặt</option><option disabled>Phiếu chi tiền mặt · Phát triển sau</option><option disabled>Giấy báo Có · Phát triển sau</option><option disabled>Giấy báo Nợ · Phát triển sau</option></select></Field></div><form onSubmit={submit} className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Ngày phiếu thu"><input required type="date" className="field" value={date} onChange={(e) => setDate(e.target.value)}/></Field><Field label="Số phiếu thu"><input required className="field" placeholder="PT-0001" value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)}/></Field><Field label="Mã đối tượng"><input required list="counterparty-codes" className="field" placeholder="Nhập hoặc chọn mã" value={counterpartyCode} onChange={(e) => { setCounterpartyCode(e.target.value); setLookupState("idle"); setLookupMessage(""); }} onBlur={() => void lookupCounterparty()}/><datalist id="counterparty-codes">{counterparties.map(item => <option key={item.code} value={item.code} label={item.name}/>)}</datalist>{lookupState === "loading" && <span className="mt-1 block text-xs text-slate-500">Đang tải thông tin đối tượng…</span>}{lookupState === "not_found" && <span className="mt-1 block text-xs text-amber-700">{lookupMessage}</span>}{lookupState === "error" && <span className="mt-1 block text-xs text-red-600">{lookupMessage}</span>}</Field><Field label="Tên đối tượng"><input required className="field" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)}/></Field><Field label="Mã số thuế"><input className="field" value={counterpartyTaxCode} onChange={(e) => setCounterpartyTaxCode(e.target.value)}/></Field><Field label="Địa chỉ" wide><input className="field" value={counterpartyAddress} onChange={(e) => setCounterpartyAddress(e.target.value)}/></Field><Field label="Nội dung thu"><input required className="field" placeholder="Nội dung phiếu thu" value={description} onChange={(e) => setDescription(e.target.value)}/></Field><Field label="Nhóm ngành"><select className="field" value={category} onChange={(e) => setCategory(e.target.value as BusinessProfile["industry"])}><option value="distribution">Phân phối</option><option value="services">Dịch vụ</option><option value="production">Sản xuất, vận tải</option><option value="other">Nhóm khác</option></select></Field><Field label="Số tiền thu (VND)"><input required className="field" inputMode="numeric" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}/></Field><label className="flex items-end gap-2 pb-3 text-sm text-ink"><input type="checkbox" checked={saveCounterparty} onChange={(e) => setSaveCounterparty(e.target.checked)}/> Lưu/cập nhật địa chỉ vào danh mục</label><div className="flex items-end"><button disabled={Boolean(data.periods[0].lockedAt) || saving} className="primary w-full disabled:opacity-40">{saving ? "Đang lưu…" : "Lập phiếu thu"}</button></div></form></section><section className="card overflow-x-auto"><table><thead><tr><th>Ngày</th><th>Loại</th><th>Nhóm ngành</th><th>Nội dung</th><th>Hóa đơn</th><th className="text-right">Số tiền</th><th className="text-right">Thuế GTGT</th><th></th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className={issues.some(issue => issue.transactionId === item.id) ? "bg-amber-50/50" : ""}><td>{editingDateId === item.id ? <input aria-label={`Ngày của ${item.description}`} type="date" className="field min-w-36" value={editingDate} onChange={(e) => setEditingDate(e.target.value)}/> : new Date(`${item.date}T00:00:00`).toLocaleDateString("vi-VN")}</td><td><span className={`badge ${item.type === "revenue" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{item.voucherType === "cash_receipt" ? "Phiếu thu" : item.voucherType === "carry_forward" ? "Kết chuyển" : item.type === "revenue" ? "Doanh thu" : "Chi phí"}</span></td><td>{item.revenueCategory}</td><td className="font-medium text-ink">{item.description}</td><td>{item.documentNo || item.invoiceNo}</td><td className="text-right font-semibold">{formatVnd(item.amount)}</td><td className="text-right">{formatVnd(item.vatAmount ?? 0)}</td><td>{editingDateId === item.id ? <div className="flex gap-2"><button disabled={Boolean(data.periods[0].lockedAt)} onClick={() => void saveDate(item)} className="link-button">Lưu</button><button onClick={() => setEditingDateId("")} className="text-xs text-slate-500">Hủy</button></div> : <button disabled={Boolean(data.periods[0].lockedAt)} onClick={() => { setEditingDateId(item.id); setEditingDate(item.date); setMessage(""); }} className="link-button disabled:opacity-40">Sửa ngày</button>}</td></tr>)}</tbody></table></section></>;
 }
 
 function TransactionRemoval({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
@@ -222,7 +222,7 @@ function Books({ data, go }: { data: TaxDatabase; go: (view: View) => void }) {
   const available = accountingBooks[method];
   const [selectedCode, setSelectedCode] = useState<string>(available[0].code);
   const selected = available.find(item => item.code === selectedCode) ?? available[0];
-  const sorted = [...data.transactions].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = data.transactions.filter(item => item.type !== "carry_forward").sort((a, b) => a.date.localeCompare(b.date));
   const revenue = sorted.filter(item => item.type === "revenue").reduce((sum, item) => sum + item.amount, 0);
   const expenses = sorted.filter(item => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
   const receivables = sorted.reduce((sum, item) => sum + (item.outstandingAmount ?? 0), 0);
@@ -401,7 +401,7 @@ function addAccountingBookSheets(book: import("exceljs").Workbook, method: NonNu
       continue;
     }
     sheet.addRow(["Ngày", "Hóa đơn/chứng từ", "Nội dung", "Nhóm ngành", "Thu", "Chi", "Ghi chú"]);
-    const rows = definition.code === "S2c-HKD" || definition.code === "S2e-HKD" ? items : items.filter(item => item.type === "revenue");
+    const rows = definition.code === "S2c-HKD" || definition.code === "S2e-HKD" ? items.filter(item => item.type !== "carry_forward") : items.filter(item => item.type === "revenue");
     rows.forEach(item => sheet.addRow([item.date, item.documentNo || item.invoiceNo, item.description, item.revenueCategory, item.type === "revenue" ? item.amount : 0, item.type === "expense" ? item.amount : 0, ""]));
   }
 }
@@ -525,15 +525,92 @@ function CashPaymentDetail({ data, refresh, onEndSession }: { data: TaxDatabase;
   </>;
 }
 
-const voucherTypeOptions: { value: "cash_receipt" | "cash_payment"; label: string }[] = [
+function suggestCarryForwardNo(vouchers: Transaction[]) {
+  const [, mm] = currentDateInputValue().split("-");
+  const numbers = vouchers.map(item => Number((item.documentNo || item.invoiceNo).match(/^KC-(\d+)/)?.[1])).filter(Number.isFinite);
+  return `KC-${String((numbers.length ? Math.max(...numbers) : 0) + 1).padStart(2, "0")}/${mm}`;
+}
+
+// Sinh bút toán kết chuyển từ các chứng từ đã ghi sổ của kỳ: doanh thu/thu nhập -> 911, chi phí -> 911, lãi/lỗ 911 -> 421.
+function buildCarryForwardEntries(transactions: Transaction[], periodId: string, accounts: import("@/domain/tax").Account[]): import("@/domain/tax").CarryForwardEntry[] {
+  const revenue = new Map<string, number>(); const expense = new Map<string, number>();
+  const add = (map: Map<string, number>, account: string, amount: number) => { if (amount > 0) map.set(account, (map.get(account) ?? 0) + amount); };
+  for (const item of transactions) {
+    if (item.periodId !== periodId || item.type === "carry_forward") continue;
+    if ((item.cashReceipt?.status ?? item.cashPayment?.status) === "draft") continue;
+    if (item.type === "revenue") {
+      const lines = item.cashReceipt?.entries?.filter(entry => entry.kind === "normal") ?? [];
+      if (lines.length > 0) lines.forEach(entry => { if (/^[57]/.test(entry.creditAccount)) add(revenue, entry.creditAccount, entry.amount); });
+      else add(revenue, "511", item.amount - item.vatAmount);
+    } else if (item.cashPayment) {
+      if (/^[68]/.test(item.cashPayment.debitAccount)) add(expense, item.cashPayment.debitAccount, item.amount);
+    }
+  }
+  const exists = (code: string) => accounts.length === 0 || accounts.some(account => account.code === code && account.isActive);
+  const entries: import("@/domain/tax").CarryForwardEntry[] = [];
+  const push = (debitAccount: string, creditAccount: string, amount: number, description: string) => { if (amount > 0 && exists(debitAccount) && exists(creditAccount)) entries.push({ id: crypto.randomUUID(), debitAccount, creditAccount, amount, description }); };
+  revenue.forEach((amount, account) => push(account, "911", amount, `Kết chuyển doanh thu, thu nhập ${account}`));
+  expense.forEach((amount, account) => push("911", account, amount, `Kết chuyển chi phí ${account}`));
+  const profit = [...revenue.values()].reduce((a, b) => a + b, 0) - [...expense.values()].reduce((a, b) => a + b, 0);
+  if (profit > 0) push("911", "421", profit, "Kết chuyển lãi"); else if (profit < 0) push("421", "911", -profit, "Kết chuyển lỗ");
+  return entries;
+}
+
+function CarryForwardDetail({ data, refresh, onEndSession }: { data: TaxDatabase; refresh: () => Promise<void>; onEndSession: () => void }) {
+  const periodId = data.periods[0].id;
+  const vouchers = data.transactions.filter(item => item.voucherType === "carry_forward" && item.periodId === periodId);
+  const blank = (): import("@/domain/tax").CarryForward => ({ periodId, status: "draft", voucherNo: suggestCarryForwardNo(vouchers), voucherDate: currentDateInputValue(), postingDate: currentDateInputValue(), description: "Kết chuyển cuối kỳ", note: "", entries: [] });
+  const [form, setForm] = useState(blank); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false);
+  const [accounts, setAccounts] = useState(data.accounts ?? []);
+  useEffect(() => { let active = true; void taxApi.getAccounts().then(items => { if (active) setAccounts(items); }).catch(() => { if (active) setMessage("Không tải được danh mục tài khoản."); }); return () => { active = false; }; }, []);
+  const total = form.entries.reduce((sum, entry) => sum + entry.amount, 0);
+  const setEntry = (id: string, patch: Partial<import("@/domain/tax").CarryForwardEntry>) => setForm(current => ({ ...current, entries: current.entries.map(entry => entry.id === id ? { ...entry, ...patch } : entry) }));
+  function generate() {
+    const entries = buildCarryForwardEntries(data.transactions, periodId, accounts);
+    if (entries.length === 0) { setMessage("Kỳ này chưa có doanh thu/chi phí đã ghi sổ để kết chuyển."); return; }
+    setForm(current => ({ ...current, entries })); setMessage("Đã tự sinh bút toán từ các chứng từ đã ghi sổ; kiểm tra lại trước khi lưu.");
+  }
+  async function save(status: "draft" | "saved") {
+    setMessage("");
+    const invalid = !form.voucherNo.trim() || !form.description.trim() || !isValidDateInput(form.voucherDate) || !isValidDateInput(form.postingDate) || form.entries.length === 0 || form.entries.some(entry => entry.amount <= 0 || !/^\d{3,10}$/.test(entry.debitAccount) || !/^\d{3,10}$/.test(entry.creditAccount) || entry.debitAccount === entry.creditAccount);
+    if (invalid) { setMessage("Kiểm tra số chứng từ, ngày, diễn giải và định khoản (TK Nợ khác TK Có, số tiền > 0)."); return; }
+    try { setBusy(true); const payload = { ...form, status }; if (form.id) await taxApi.updateCarryForward(payload as typeof form & { id: string }); else await taxApi.createCarryForward(payload); await refresh(); setMessage(status === "draft" ? "Đã lưu nháp chứng từ kết chuyển." : "Đã lưu chứng từ kết chuyển."); if (status === "saved") setForm(blank()); }
+    catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể lưu chứng từ kết chuyển"); } finally { setBusy(false); }
+  }
+  function edit(item: Transaction) { const d = item.carryForward; if (!d) return; setForm({ ...d, id: item.id, periodId: item.periodId, voucherNo: item.documentNo || item.invoiceNo, description: item.description }); setMessage(""); }
+  async function remove() { if (!form.id || !window.confirm("Xóa chứng từ kết chuyển này?")) return; try { await taxApi.deleteTransaction(form.id); setForm(blank()); await refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Không thể xóa chứng từ"); } }
+  return <><Header eyebrow="Chứng từ" title="Chứng từ kết chuyển cuối kỳ" description="Kết chuyển doanh thu, chi phí sang TK 911 và lãi/lỗ sang TK 421. Chứng từ này chỉ là bút toán sổ cái, không tính vào doanh thu hay chi phí tính thuế."/>{message && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{message}</p>}
+    {vouchers.length > 0 && <section className="card mb-5"><h2 className="section-title">Chứng từ kết chuyển đã lập</h2><p className="section-subtitle">Bấm vào một dòng để mở lại chứng từ.</p><div className="mt-4 overflow-x-auto"><table className="min-w-[700px]"><thead><tr><th>Ngày</th><th>Số chứng từ</th><th>Diễn giải</th><th>Trạng thái</th><th className="text-right">Tổng tiền</th></tr></thead><tbody>{vouchers.map(item => <tr key={item.id} className="cursor-pointer" onClick={() => edit(item)}><td>{item.date}</td><td>{item.documentNo || item.invoiceNo}</td><td>{item.description}</td><td>{item.carryForward?.status === "draft" ? "Nháp" : "Đã ghi sổ"}</td><td className="text-right">{formatVnd(item.amount)}</td></tr>)}</tbody></table></div></section>}
+    <form onSubmit={e => { e.preventDefault(); void save("saved"); }} className="card grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Loại chứng từ"><input className="field" disabled value="18. Chứng từ kết chuyển cuối kỳ"/></Field><Field label="Số chứng từ *"><input className="field" value={form.voucherNo} onChange={e => setForm({ ...form, voucherNo: e.target.value })}/></Field><Field label="Ngày chứng từ *"><input type="date" className="field" value={form.voucherDate} onChange={e => setForm({ ...form, voucherDate: e.target.value })}/></Field><Field label="Ngày ghi sổ *"><input type="date" className="field" value={form.postingDate} onChange={e => setForm({ ...form, postingDate: e.target.value })}/></Field></div>
+      <div className="grid gap-4 md:grid-cols-2"><Field label="Diễn giải *"><input className="field" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}/></Field><Field label="Ghi chú"><input className="field" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}/></Field></div>
+      <div className="overflow-x-auto"><table className="min-w-[760px]"><thead><tr><th>TK Nợ</th><th>TK Có</th><th>Diễn giải</th><th className="text-right">Số tiền</th><th/></tr></thead><tbody>
+        {form.entries.length === 0 && <tr><td colSpan={5} className="text-slate-500">Chưa có định khoản. Bấm “Tự sinh bút toán kết chuyển” hoặc “Thêm định khoản”.</td></tr>}
+        {form.entries.map(entry => <tr key={entry.id}><td><input className="field" list="cf-accounts" value={entry.debitAccount} onChange={e => setEntry(entry.id, { debitAccount: e.target.value.trim() })}/></td><td><input className="field" list="cf-accounts" value={entry.creditAccount} onChange={e => setEntry(entry.id, { creditAccount: e.target.value.trim() })}/></td><td><input className="field" value={entry.description} onChange={e => setEntry(entry.id, { description: e.target.value })}/></td><td><input className="field text-right" inputMode="numeric" value={entry.amount ? formatVnd(entry.amount).replace(/[^\d.,]/g, "") : ""} onChange={e => setEntry(entry.id, { amount: parseVnd(e.target.value) })}/></td><td><button type="button" className="secondary" onClick={() => setForm(current => ({ ...current, entries: current.entries.filter(item => item.id !== entry.id) }))}>Xóa</button></td></tr>)}
+      </tbody><tfoot><tr><td colSpan={3} className="text-right font-semibold">Tổng cộng</td><td className="text-right font-semibold">{formatVnd(total)}</td><td/></tr></tfoot></table><datalist id="cf-accounts">{accounts.filter(account => account.isActive).map(account => <option key={account.code} value={account.code}>{account.name}</option>)}</datalist></div>
+      <div className="flex flex-wrap items-end gap-2">
+        <button type="button" onClick={generate} className="secondary">Tự sinh bút toán kết chuyển</button>
+        <button type="button" onClick={() => setForm(current => ({ ...current, entries: [...current.entries, { id: crypto.randomUUID(), debitAccount: "", creditAccount: "", amount: 0, description: "" }] }))} className="secondary">Thêm định khoản</button>
+        <button type="button" disabled={busy} onClick={() => void save("draft")} className="secondary">Lưu nháp</button>
+        <button disabled={busy} className="primary">Ghi sổ</button>
+        <button type="button" onClick={remove} disabled={!form.id} className="secondary">Xóa</button>
+        <button type="button" onClick={() => { setForm(blank()); setMessage(""); onEndSession(); }} className="secondary">Kết thúc</button>
+      </div>
+    </form>
+  </>;
+}
+
+type VoucherDocType = "cash_receipt" | "cash_payment" | "carry_forward";
+const voucherTypeOptions: { value: VoucherDocType; label: string }[] = [
   { value: "cash_receipt", label: "01. Phiếu thu tiền mặt" },
-  { value: "cash_payment", label: "02. Phiếu chi tiền mặt" }
+  { value: "cash_payment", label: "02. Phiếu chi tiền mặt" },
+  { value: "carry_forward", label: "99. Chứng từ kết chuyển cuối kỳ" }
 ];
 const voucherTypePlaceholders = [
   "03. Hàng mua chưa thanh toán", "04. Phiếu xuất kho nguyên vật liệu", "05. Phiếu chuyển kho",
   "06. Chứng từ doanh thu không thu tiền ngay", "07. Thu ngân hàng", "08. Chi ngân hàng", "09. Chứng từ khác",
   "10. Phiếu xuất kho giá vốn", "12. Ngân hàng - ACB", "13. Ngân hàng SACOMBANK", "14. Ngân hàng MB",
-  "15. Phiếu xuất kho thành phẩm", "16. Phiếu nhập kho thành phẩm", "17. Chứng từ chi lương", "99. Chứng từ kết chuyển cuối kỳ"
+  "15. Phiếu xuất kho thành phẩm", "16. Phiếu nhập kho thành phẩm", "17. Chứng từ chi lương"
 ];
 
 function Catalog({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
@@ -660,12 +737,12 @@ function CounterpartyCatalog({ data, refresh }: { data: TaxDatabase; refresh: ()
 }
 
 function VoucherEntry({ data, refresh }: { data: TaxDatabase; refresh: () => Promise<void> }) {
-  const [docType, setDocType] = useState<"" | "cash_receipt" | "cash_payment">("");
+  const [docType, setDocType] = useState<"" | VoucherDocType>("");
   function endSession() { setDocType(""); }
   return <>
     <section className="card mb-5">
       <Field label="Loại chứng từ" wide>
-        <select className="field" value={docType} onChange={(e) => setDocType(e.target.value as "" | "cash_receipt" | "cash_payment")}>
+        <select className="field" value={docType} onChange={(e) => setDocType(e.target.value as "" | VoucherDocType)}>
           <option value="">→ Bạn hãy chọn loại chứng từ...</option>
           {voucherTypeOptions.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           {voucherTypePlaceholders.map(label => <option key={label} disabled>{label} · Phát triển sau</option>)}
@@ -675,6 +752,7 @@ function VoucherEntry({ data, refresh }: { data: TaxDatabase; refresh: () => Pro
     </section>
     {docType === "cash_receipt" && <CashReceiptDetail data={data} refresh={refresh} onEndSession={endSession}/>}
     {docType === "cash_payment" && <CashPaymentDetail data={data} refresh={refresh} onEndSession={endSession}/>}
+    {docType === "carry_forward" && <CarryForwardDetail data={data} refresh={refresh} onEndSession={endSession}/>}
   </>;
 }
 

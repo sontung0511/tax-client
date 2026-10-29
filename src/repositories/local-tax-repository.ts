@@ -1,5 +1,5 @@
 import { seedDatabase } from "@/domain/mock-data";
-import type { Account, AuditEntry, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CarryForward, CashPayment, CashReceipt, Counterparty, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 import { calculateTax } from "@/tax-engine/calculate";
 
@@ -191,6 +191,23 @@ export class LocalTaxRepository implements TaxRepository {
     }
     if (payment.savePayee && payment.recipientCode.trim()) await this.saveCounterparty({ code: payment.recipientCode.trim(), name: payment.recipientName.trim(), taxCode: payment.recipientTaxCode.trim(), address: payment.recipientAddress.trim() });
     return this.saveTransaction({ id: crypto.randomUUID(), periodId: payment.periodId, date: payment.voucherDate, type: "expense", description: payment.description.trim(), invoiceNo: payment.invoiceNo, documentNo: payment.paymentNo.trim(), amount: payment.amount, vatAmount: 0, revenueCategory: "other", paymentStatus: "paid", outstandingAmount: 0, voucherType: "cash_payment", counterpartyCode: payment.recipientCode.trim(), counterpartyName: payment.recipientName.trim(), counterpartyTaxCode: payment.recipientTaxCode.trim(), counterpartyAddress: payment.recipientAddress.trim(), cashPayment: { status: payment.status, month: payment.month, ctgsNo: payment.ctgsNo, postingDate: payment.postingDate, voucherDate: payment.voucherDate, relatedDocumentNo: payment.relatedDocumentNo, invoiceType: payment.invoiceType, invoiceNo: payment.invoiceNo, invoiceSerial: payment.invoiceSerial, invoiceDate: payment.invoiceDate, unitName: payment.unitName, unitAddress: payment.unitAddress, itemName: payment.itemName, warehouseCode: payment.warehouseCode, debitAccount: payment.debitAccount, debitSub1: payment.debitSub1, debitSub2: payment.debitSub2, creditAccount: payment.creditAccount, creditSub1: payment.creditSub1, creditSub2: payment.creditSub2, caseCode: payment.caseCode, quantity: payment.quantity, unitPrice: payment.unitPrice, currency: payment.currency, exchangeRate: payment.exchangeRate, endingStock: payment.endingStock, note: payment.note, attachments: payment.attachments } });
+  }
+
+  async createCarryForward(voucher: CarryForward) {
+    const data = this.read();
+    if (!data.periods.some((period) => period.id === voucher.periodId)) throw new Error("Không tìm thấy kỳ kê khai");
+    const amount = voucher.entries.reduce((sum, entry) => sum + entry.amount, 0);
+    if (!isValidReceiptDate(voucher.voucherDate) || !isValidReceiptDate(voucher.postingDate) || !voucher.voucherNo.trim() || !voucher.description.trim() || voucher.entries.length === 0 || !isValidReceiptAmount(amount) || voucher.entries.some((entry) => !isValidReceiptAmount(entry.amount) || !/^\d{3,10}$/.test(entry.debitAccount) || !/^\d{3,10}$/.test(entry.creditAccount) || entry.debitAccount === entry.creditAccount)) {
+      throw new Error("Vui lòng nhập đủ thông tin chứng từ kết chuyển và định khoản Nợ/Có hợp lệ");
+    }
+    const { id: _id, periodId: _periodId, voucherNo: _voucherNo, description: _description, ...detail } = voucher;
+    return this.saveTransaction({ id: crypto.randomUUID(), periodId: voucher.periodId, date: voucher.voucherDate, type: "carry_forward", description: voucher.description.trim(), invoiceNo: voucher.voucherNo.trim(), documentNo: voucher.voucherNo.trim(), amount, vatAmount: 0, revenueCategory: "other", voucherType: "carry_forward", carryForward: detail });
+  }
+
+  async updateCarryForward(voucher: CarryForward & { id: string }) {
+    const created = await this.createCarryForward({ ...voucher, id: undefined });
+    const data = this.read(); data.transactions = data.transactions.filter((item) => item.id !== voucher.id); this.write(data);
+    return created;
   }
 
   async updateCashPayment(payment: CashPayment & { id: string }) {

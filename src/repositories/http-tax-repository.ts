@@ -1,4 +1,4 @@
-import type { Account, AuditEntry, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, AuditEntry, BusinessProfile, CarryForward, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDatabase, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import type { TaxRepository } from "./tax-repository";
 
 const AUTH_KEY = "tax-client.auth.v1";
@@ -70,6 +70,8 @@ export class HttpTaxRepository implements TaxRepository {
   deactivateAccount(code: string) { return this.request<Account>(`/api/accounts/${encodeURIComponent(code)}`, { method: "DELETE" }); }
   updateCashReceipt(receipt: CashReceipt & { id: string }) { return this.request<Transaction>(`/api/cash-receipts/${encodeURIComponent(receipt.id)}`, { method: "PUT", body: JSON.stringify(receipt) }); }
   createCashPayment(payment: CashPayment) { return this.request<Transaction>("/api/cash-payments", { method: "POST", body: JSON.stringify(payment) }); }
+  createCarryForward(voucher: CarryForward) { return this.request<Transaction>("/api/carry-forwards", { method: "POST", body: JSON.stringify(voucher) }); }
+  updateCarryForward(voucher: CarryForward & { id: string }) { return this.request<Transaction>(`/api/carry-forwards/${encodeURIComponent(voucher.id)}`, { method: "PUT", body: JSON.stringify(voucher) }); }
   updateCashPayment(payment: CashPayment & { id: string }) { return this.request<Transaction>(`/api/cash-payments/${encodeURIComponent(payment.id)}`, { method: "PUT", body: JSON.stringify(payment) }); }
   importTransactions(items: Transaction[]) { return this.request<{ imported: number }>("/api/imports", { method: "POST", body: JSON.stringify({ items }) }); }
   saveDeclaration(declaration: TaxDeclaration) { return this.request<TaxDeclaration>(`/api/declarations/${encodeURIComponent(declaration.id)}`, { method: "PUT", body: JSON.stringify(declaration) }); }

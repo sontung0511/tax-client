@@ -1,4 +1,4 @@
-import type { Account, BusinessProfile, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
+import type { Account, BusinessProfile, CarryForward, CashPayment, CashReceipt, Counterparty, TaxBreakdown, TaxDeclaration, TaxPeriod, Transaction } from "@/domain/tax";
 import { taxRepository } from "@/repositories";
 
 // Contract duy nhất cho UI; mặc định dùng HTTP backend, local chỉ dành cho demo có chủ đích.
@@ -22,6 +22,8 @@ export interface TaxApi {
   updateCashReceipt(receipt: CashReceipt & { id: string }): Promise<Transaction>;
   createCashPayment(payment: CashPayment): Promise<Transaction>;
   updateCashPayment(payment: CashPayment & { id: string }): Promise<Transaction>;
+  createCarryForward(voucher: CarryForward): Promise<Transaction>;
+  updateCarryForward(voucher: CarryForward & { id: string }): Promise<Transaction>;
   calculate(periodId: string): Promise<TaxBreakdown>;
   lockPeriod(periodId: string): Promise<TaxPeriod>;
   confirmImport(items: Transaction[]): Promise<{ imported: number }>;
@@ -49,6 +51,8 @@ export const taxApi: TaxApi = {
   updateCashReceipt: (receipt) => taxRepository.updateCashReceipt(receipt),
   createCashPayment: (payment) => taxRepository.createCashPayment(payment),
   updateCashPayment: (payment) => taxRepository.updateCashPayment(payment),
+  createCarryForward: (voucher) => taxRepository.createCarryForward(voucher),
+  updateCarryForward: (voucher) => taxRepository.updateCarryForward(voucher),
   calculate: (periodId) => taxRepository.calculate(periodId),
   lockPeriod: (periodId) => taxRepository.lockPeriod(periodId),
   confirmImport: (items) => taxRepository.importTransactions(items),
@@ -63,7 +67,8 @@ export const taxApiContracts = {
     counterparties: "GET /api/counterparties; GET|PUT|DELETE /api/counterparties/{code}",
     accounts: "GET|POST /api/accounts; PUT|DELETE /api/accounts/{code}",
   cashReceipts: "POST /api/cash-receipts",
-  cashPayments: "POST /api/cash-payments",
+  cashPayments: "POST /api/cash-payments; PUT /api/cash-payments/{id}",
+  carryForwards: "POST /api/carry-forwards; PUT /api/carry-forwards/{id}",
   calculate: "POST /api/calculate",
   imports: "POST /api/imports",
   exports: "GET /api/exports",

@@ -49,7 +49,7 @@ export interface Transaction {
   id: string;
   periodId: string;
   date: string;
-  type: "revenue" | "expense";
+  type: "revenue" | "expense" | "carry_forward";
   description: string;
   invoiceNo: string;
   amount: Vnd;
@@ -58,13 +58,14 @@ export interface Transaction {
   documentNo?: string;
   paymentStatus?: "paid" | "unpaid";
   outstandingAmount?: Vnd;
-    voucherType?: "cash_receipt" | "cash_payment";
+    voucherType?: "cash_receipt" | "cash_payment" | "carry_forward";
     counterpartyCode?: string;
     counterpartyName?: string;
     counterpartyTaxCode?: string;
     counterpartyAddress?: string;
     cashReceipt?: CashReceiptData;
     cashPayment?: CashPaymentData;
+    carryForward?: CarryForwardData;
 }
 
 export interface Counterparty {
@@ -161,6 +162,22 @@ export interface CashPayment {
 }
 
 export interface CashPaymentData extends Omit<CashPayment, "id" | "periodId" | "paymentNo" | "recipientCode" | "recipientName" | "recipientTaxCode" | "recipientAddress" | "description" | "amount" | "savePayee"> {}
+
+export interface CarryForwardEntry { id: string; debitAccount: string; creditAccount: string; amount: Vnd; description: string; }
+
+export interface CarryForward {
+  id?: string;
+  periodId: string;
+  status: "draft" | "saved";
+  voucherNo: string;
+  voucherDate: string;
+  postingDate: string;
+  description: string;
+  note: string;
+  entries: CarryForwardEntry[];
+}
+
+export type CarryForwardData = Omit<CarryForward, "id" | "periodId" | "voucherNo" | "description">;
 
 export interface TaxLine {
   industry: IndustryCode;
